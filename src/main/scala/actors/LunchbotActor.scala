@@ -1,35 +1,32 @@
 package actors
 
-import com.cyberdolphins.slime._
-import com.cyberdolphins.slime.SlackBotActor.{Close, Connect}
-import com.cyberdolphins.slime.incoming._
-import com.cyberdolphins.slime.outgoing._
-import com.cyberdolphins.slime.common._
-import play.api.Logger
+import akka.actor.{Actor, Props}
+import slack.SlackUtil
+import slack.models.Message
+import slack.rtm.SlackRtmConnectionActor.SendMessage
+import util.Logging
 
 /**
   * Created by mactur on 29/09/2016.
   */
-class LunchbotActor extends SlackBotActor {
+class LunchbotActor(selfId: String) extends Actor with Logging {
 
-  val logger: Logger = Logger(getClass)
+  override def receive: Receive = {
 
-  val triggers: Set[String] = Set("lunchbot", "lb")
+    case message: Message =>
 
-  val triggersRegex: String = triggers.map(tr => s"\\b$tr\\b").mkString("|")
+      val mentionedIds = SlackUtil.extractMentionedIds(message.text)
 
-  logger.debug(s"triggersRegex is $triggersRegex")
-
-  val regex = s"($triggersRegex)(.*)"
-
-  logger.debug(s"regex is $regex")
-
-  override def eventReceive: EventReceive = {
-
-    case SimpleInboundMessage(text, channel, user) if text.matches(regex) =>
-
-      publish(s"""Hello, $user, I can hear you say: *$text*""", channel, user)
+      if (mentionedIds.contains(selfId)) {
+        sender ! SendMessage(message.channel, s"<@${message.user}>: Hey!")
+      }
 
   }
+
+}
+
+object LunchbotActor {
+
+  def props(selfId: String): Props = Props(new LunchbotActor(selfId))
 
 }

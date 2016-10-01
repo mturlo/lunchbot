@@ -1,24 +1,32 @@
 import actors.LunchbotActor
-import akka.actor.{ActorRef, ActorSystem, Props}
-import com.cyberdolphins.slime.SlackBotActor.{Close, Connect}
+import akka.actor.{ActorRef, ActorSystem}
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import slack.rtm.SlackRtmClient
 
 /**
   * Created by mactur on 29/09/2016.
   */
 object Main extends App {
 
-  val actorSystem = ActorSystem()
+  implicit val actorSystem = ActorSystem("slack")
 
-  val lunchbotActor: ActorRef = actorSystem.actorOf(Props[LunchbotActor], "lunchbot")
+  val token: String = System.getenv("SLACK_API_KEY")
 
-  lunchbotActor ! Connect(System.getenv("SLACK_API_KEY"))
+  val client = SlackRtmClient(token)
+
+  val selfId: String = client.state.self.id
+
+  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId), "lunchbot")
+
+  client.addEventListener(lunchbotActor)
 
   sys.addShutdownHook {
-    lunchbotActor ! Close
-    actorSystem.shutdown()
-    actorSystem.awaitTermination()
+    client.close()
+    actorSystem.terminate()
   }
 
-  actorSystem.awaitTermination()
+  Await.result(actorSystem.whenTerminated, Duration.Inf)
 
 }
