@@ -13,13 +13,9 @@ class LunchbotActor(selfId: String) extends Actor with Logging {
 
   override def receive: Receive = {
 
-    case message: Message =>
+    case message: Message if SlackUtil.mentionsId(message.text, selfId) =>
 
-      val mentionedIds = SlackUtil.extractMentionedIds(message.text)
-
-      if (mentionedIds.contains(selfId)) {
-        sender ! SendMessage(message.channel, s"<@${message.user}>: Hey!")
-      }
+      sender ! SendMessage(message.channel, s"<@${message.user}>: Hey!")
 
   }
 
