@@ -28,7 +28,7 @@ class LunchbotActor extends SlackBotActor {
 
     case SimpleInboundMessage(text, channel, user) if text.matches(regex) =>
 
-      publish(s"""Hello, ${user.name}, I can hear you say: *$text*""", channel, user)
+      publish(s"""Hello, $user, I can hear you say: *$text*""", channel, user)
 
   }
 

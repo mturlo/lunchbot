@@ -7,7 +7,7 @@ scalaVersion := "2.11.8"
 libraryDependencies ++= {
 
   object Versions {
-    val slime = "0.2.0-SNAPSHOT"
+    val slime = "0.2.1-SNAPSHOT"
 
     val scalatest = "3.0.0"
   }
@@ -21,4 +21,4 @@ libraryDependencies ++= {
 
 }
 
-lazy val root = (project in file("."))
+lazy val root = project in file(".")
