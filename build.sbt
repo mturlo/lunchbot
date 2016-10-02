@@ -23,4 +23,6 @@ libraryDependencies ++= {
 
 }
 
+scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-language:postfixOps")
+
 lazy val root = project in file(".")
