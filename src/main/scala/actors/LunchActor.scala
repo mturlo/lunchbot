@@ -22,7 +22,7 @@ class LunchActor
     case Event(Create(lunchmaster, place), _) =>
       val formattedPlace = formatUrl(place)
       sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(lunchmaster)} as Lunchmaster")
-      goto(InProgress).using(LunchData(lunchmaster, formattedPlace, Map.empty))
+      goto(InProgress) using LunchData(lunchmaster, formattedPlace, Map.empty)
 
     case Event(_, _) =>
       sender ! SimpleMessage("No current running lunch processes")
@@ -40,19 +40,19 @@ class LunchActor
       eaters.get(eaterId) match {
         case Some(_) =>
           sender ! MentionMessage(s"You've already joined this lunch!", eaterId)
-          stay().using(currentData)
+          stay using currentData
         case None =>
           sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId)
-          stay().using(currentData.withEater(eaterId, context.actorOf(EaterActor.props)))
+          stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props))
       }
 
     case Event(Cancel, _) =>
       sender ! SimpleMessage("Cancelled current lunch process")
-      goto(Idle).using(Empty)
+      goto(Idle) using Empty
 
   }
 
-  initialize()
+  initialize
 
 }
 
