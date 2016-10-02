@@ -1,9 +1,9 @@
 import actors.LunchbotActor
 import akka.actor.{ActorRef, ActorSystem}
+import slack.rtm.SlackRtmClient
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import slack.rtm.SlackRtmClient
 
 /**
   * Created by mactur on 29/09/2016.

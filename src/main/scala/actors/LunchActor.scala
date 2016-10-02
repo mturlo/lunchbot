@@ -3,9 +3,14 @@ package actors
 import actors.LunchActor._
 import actors.LunchbotActor.{HereMessage, MentionMessage, SimpleMessage}
 import akka.actor.{ActorRef, FSM, Props}
-import commands.{Cancel, Create, Join}
+import akka.pattern._
+import akka.util.Timeout
+import commands._
 import model.UserId
 import util.{Formatting, Logging}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 /**
   * Created by mactur on 01/10/2016.
@@ -14,6 +19,8 @@ class LunchActor
   extends FSM[State, Data]
     with Logging
     with Formatting {
+
+  implicit val askTimeout = Timeout(1 second)
 
   startWith(Idle, Empty)
 
@@ -45,6 +52,15 @@ class LunchActor
           sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId)
           stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props))
       }
+
+    case Event(choose@Choose(eaterId, _), LunchData(_, _, eaters)) =>
+      eaters.get(eaterId) match {
+        case Some(eaterActor) =>
+          (eaterActor ? choose).pipeTo(sender)
+        case None =>
+          MentionMessage(s"You have to join this lunch first!", eaterId)
+      }
+      stay
 
     case Event(Cancel(canceller), LunchData(lunchmaster, _, _)) =>
       if (canceller == lunchmaster) {
