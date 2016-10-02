@@ -82,6 +82,15 @@ class LunchActor
         stay
       }
 
+    case Event(poke@Poke(poker), LunchData(lunchmaster, _, eaters)) =>
+      val slack = sender
+      if (poker == lunchmaster) {
+        eaters.values.map(_ ? poke).map(_.pipeTo(slack))
+      } else {
+        sender ! SimpleMessage("Only lunchmasters can poke eaters!")
+      }
+      stay
+
     case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
       val slack = sender
       Future.traverse(eaters.values) { eaterRef =>

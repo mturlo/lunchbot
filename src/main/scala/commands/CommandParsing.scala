@@ -23,6 +23,8 @@ trait CommandParsing {
       case ("cancel", Some(_)) => None
       case ("summary", None) => Some(Summary(message.user))
       case ("summary", Some(_)) => None
+      case ("poke", None) => Some(Poke(message.user))
+      case ("poke", Some(_)) => None
       case ("join", None) => Some(Join(message.user))
       case ("join", Some(_)) => None
       case ("choose", None) => None

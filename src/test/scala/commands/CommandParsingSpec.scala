@@ -39,6 +39,10 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
     assertNoArgCommand("summary", Summary.apply, parse)
   }
 
+  it should "parse poke command" in new CommandParsing {
+    assertNoArgCommand("poke", Poke.apply, parse)
+  }
+
   type ParseFunction = Message => Option[Command]
 
   def assertArgCommand(commandName: String,

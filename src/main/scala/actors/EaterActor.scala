@@ -4,7 +4,7 @@ import actors.EaterActor._
 import actors.LunchActor.EaterReport
 import actors.LunchbotActor.MentionMessage
 import akka.actor.{FSM, Props}
-import commands.{Choose, Pay, Summary}
+import commands.{Choose, Pay, Poke, Summary}
 import model.UserId
 
 /**
@@ -26,6 +26,10 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
 
     case Event(Summary(_), Empty) =>
       sender ! EaterReport(eaterId, stateName, stateData)
+      stay
+
+    case Event(Poke(_), Empty) =>
+      sender ! MentionMessage(s"Hey, everybody's waiting for you! Choose some food already!", eaterId)
       stay
 
   }
