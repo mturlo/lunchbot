@@ -19,12 +19,14 @@ trait CommandParsing {
     nameAndArgs(message.text.trim) flatMap {
       case ("create", None) => None
       case ("create", Some(place)) => Some(Create(message.user, place))
+      case ("cancel", None) => Some(Cancel(message.user))
+      case ("cancel", Some(_)) => None
       case ("join", None) => Some(Join(message.user))
       case ("join", Some(_)) => None
       case ("choose", None) => None
       case ("choose", Some(food)) => Some(Choose(message.user, food))
-      case ("cancel", None) => Some(Cancel(message.user))
-      case ("cancel", Some(_)) => None
+      case ("pay", None) => Some(Pay(message.user))
+      case ("pay", Some(_)) => None
       case _ => None
     }
   }
