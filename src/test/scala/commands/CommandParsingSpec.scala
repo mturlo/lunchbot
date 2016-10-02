@@ -20,11 +20,11 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   }
 
   it should "parse cancel command" in new CommandParsing {
-    assertNoArgCommand("cancel", Cancel(testUser), parse)
+    assertNoArgCommand("cancel", Cancel.apply, parse)
   }
 
   it should "parse join command" in new CommandParsing {
-    assertNoArgCommand("join", Join(testUser), parse)
+    assertNoArgCommand("join", Join.apply, parse)
   }
 
   it should "parse choose command" in new CommandParsing {
@@ -32,14 +32,14 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   }
 
   it should "parse pay command" in new CommandParsing {
-    assertNoArgCommand("pay", Pay(testUser), parse)
+    assertNoArgCommand("pay", Pay.apply, parse)
   }
 
   type ParseFunction = Message => Option[Command]
 
   def assertArgCommand(commandName: String,
-                         expected: (String, String) => Command,
-                         parse: ParseFunction): Assertion = {
+                       expected: (UserId, String) => Command,
+                       parse: ParseFunction): Assertion = {
 
     parse(getMessage(s"$commandName")) mustBe None
     parse(getMessage(s"${commandName}a")) mustBe None
@@ -52,19 +52,19 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
     parse(getMessage(s"$commandName a b c ")) mustBe Some(expected(testUser, "a b c"))
 
   }
-  
-  def assertNoArgCommand(commandName: String, 
-                         expected: Command, 
+
+  def assertNoArgCommand(commandName: String,
+                         expected: UserId => Command,
                          parse: ParseFunction): Assertion = {
-    
-    parse(getMessage(s"$commandName")) mustBe Some(expected)
-    parse(getMessage(s" $commandName")) mustBe Some(expected)
-    parse(getMessage(s" $commandName ")) mustBe Some(expected)
+
+    parse(getMessage(s"$commandName")) mustBe Some(expected(testUser))
+    parse(getMessage(s" $commandName")) mustBe Some(expected(testUser))
+    parse(getMessage(s" $commandName ")) mustBe Some(expected(testUser))
     parse(getMessage(s"$commandName a")) mustBe None
     parse(getMessage(s"$commandName a ")) mustBe None
     parse(getMessage(s"${commandName}a")) mustBe None
     parse(getMessage(s" $commandName a ")) mustBe None
-    
+
   }
 
 }
