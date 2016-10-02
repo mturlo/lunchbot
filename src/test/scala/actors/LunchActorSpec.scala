@@ -31,12 +31,12 @@ class LunchActorSpec extends TestKit(ActorSystem("LunchActorSpec")) with FlatSpe
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
 
-    lunchActor ! Cancel
+    lunchActor ! Cancel(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
 
-    lunchActor ! Cancel
+    lunchActor ! Cancel(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -45,6 +45,11 @@ class LunchActorSpec extends TestKit(ActorSystem("LunchActorSpec")) with FlatSpe
     val place2 = "some_other_place"
 
     lunchActor ! Create(lunchmaster2, place2)
+
+    lunchActor.stateName mustBe InProgress
+    lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
+
+    lunchActor ! Cancel(lunchmaster1)
 
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)

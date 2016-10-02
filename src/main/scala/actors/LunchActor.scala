@@ -46,9 +46,14 @@ class LunchActor
           stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props))
       }
 
-    case Event(Cancel, _) =>
-      sender ! SimpleMessage("Cancelled current lunch process")
-      goto(Idle) using Empty
+    case Event(Cancel(canceller), LunchData(lunchmaster, _, _)) =>
+      if (canceller == lunchmaster) {
+        sender ! SimpleMessage("Cancelled current lunch process")
+        goto(Idle) using Empty
+      } else {
+        sender ! SimpleMessage("Only lunchmasters can cancel lunches!")
+        stay()
+      }
 
   }
 

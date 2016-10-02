@@ -23,7 +23,7 @@ trait CommandParsing {
       case ("join", Some(_)) => None
       case ("choose", None) => None
       case ("choose", Some(food)) => Some(Choose(message.user, food))
-      case ("cancel", None) => Some(Cancel)
+      case ("cancel", None) => Some(Cancel(message.user))
       case ("cancel", Some(_)) => None
       case _ => None
     }
