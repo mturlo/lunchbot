@@ -1,28 +1,60 @@
 package actors
 
-import akka.actor.{Actor, Props}
+import actors.LunchbotActor.OutboundMessage
+import akka.actor.{Actor, ActorRef, Props}
+import akka.pattern._
+import akka.util.Timeout
+import commands.CommandParsing
+import model.Username
 import slack.SlackUtil
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.Logging
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+
 /**
   * Created by mactur on 29/09/2016.
   */
-class LunchbotActor(selfId: String) extends Actor with Logging {
+class LunchbotActor(selfId: String)
+  extends Actor
+    with Logging
+    with CommandParsing {
+
+  implicit val askTimeout: Timeout = Timeout(1 second)
+
+  val lunchActor: ActorRef = context.actorOf(LunchActor.props)
 
   override def receive: Receive = {
 
     case message: Message if SlackUtil.mentionsId(message.text, selfId) =>
 
-      sender ! SendMessage(message.channel, s"<@${message.user}>: Hey!")
+      val slack = sender()
+
+      parse(message) match {
+
+        case Some(command) =>
+          (lunchActor ? command)
+            .mapTo[OutboundMessage]
+            .map(om => SendMessage(message.channel, s"${om.recipient.map(formatRecipient).getOrElse("")} ${om.text}"))
+            .pipeTo(slack)
+
+        case None =>
+          slack ! SendMessage(message.channel, s"${formatRecipient(message.user)} I didn't quite get that...")
+
+      }
 
   }
+
+  private def formatRecipient(username: Username): String = s"<@$username>"
 
 }
 
 object LunchbotActor {
 
   def props(selfId: String): Props = Props(new LunchbotActor(selfId))
+
+  case class OutboundMessage(text: String, recipient: Option[Username] = None)
 
 }
