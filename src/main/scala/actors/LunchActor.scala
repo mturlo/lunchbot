@@ -1,7 +1,7 @@
 package actors
 
 import actors.LunchActor._
-import actors.LunchbotActor.OutboundMessage
+import actors.LunchbotActor.{HereMessage, SimpleMessage}
 import akka.actor.{FSM, Props}
 import commands.{Cancel, Create}
 import model.UserId
@@ -19,19 +19,19 @@ class LunchActor
 
   when(Idle) {
     case Event(Create(lunchmaster, place), _) =>
-      sender ! OutboundMessage(s"Created new lunch instance at: ${formatUrl(place)} with ${formatMention(lunchmaster)} as Lunchmaster")
+      sender ! HereMessage(s"Created new lunch instance at: ${formatUrl(place)} with ${formatMention(lunchmaster)} as Lunchmaster")
       goto(InProgress).using(LunchData(lunchmaster, place, Seq.empty))
     case Event(Cancel, _) =>
-      sender ! OutboundMessage("No current running lunch processes")
+      sender ! SimpleMessage("No current running lunch processes")
       stay
   }
 
   when(InProgress) {
     case Event(Create(_, _), LunchData(lunchmaster, place, _)) =>
-      sender ! OutboundMessage(s"There is already a running lunch process at: ${formatUrl(place)} with ${formatMention(lunchmaster)} as Lunchmaster")
+      sender ! SimpleMessage(s"There is already a running lunch process at: ${formatUrl(place)} with ${formatMention(lunchmaster)} as Lunchmaster")
       stay
     case Event(Cancel, _) =>
-      sender ! OutboundMessage("Cancelled current lunch process")
+      sender ! SimpleMessage("Cancelled current lunch process")
       goto(Idle).using(Empty)
   }
 

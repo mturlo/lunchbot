@@ -42,7 +42,7 @@ class LunchbotActor(selfId: String)
         case Some(command) =>
           (lunchActor ? command)
             .mapTo[OutboundMessage]
-            .map(om => SendMessage(message.channel, s"${om.recipient.map(formatMention).getOrElse("")} ${om.text}"))
+            .map(om => SendMessage(message.channel, om.getText))
             .pipeTo(slack)
 
         case None =>
@@ -54,10 +54,24 @@ class LunchbotActor(selfId: String)
 
 }
 
-object LunchbotActor {
+object LunchbotActor extends Formatting {
 
   def props(selfId: String): Props = Props(new LunchbotActor(selfId))
 
-  case class OutboundMessage(text: String, recipient: Option[UserId] = None)
+  sealed trait OutboundMessage {
+    def getText: String
+  }
+
+  case class HereMessage(text: String) extends OutboundMessage {
+    override def getText: String = s"<!here> $text"
+  }
+
+  case class MentionMessage(text: String, mentionedUser: UserId) extends OutboundMessage {
+    override def getText: String = s"${formatMention(mentionedUser)} $text"
+  }
+
+  case class SimpleMessage(text: String) extends OutboundMessage {
+    override def getText: String = text
+  }
 
 }
