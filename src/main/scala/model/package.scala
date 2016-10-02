@@ -3,6 +3,6 @@
   */
 package object model {
 
-  type Username = String
+  type UserId = String
 
 }

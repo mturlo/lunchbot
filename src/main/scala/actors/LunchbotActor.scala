@@ -5,11 +5,11 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
 import commands.CommandParsing
-import model.Username
+import model.UserId
 import slack.SlackUtil
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
-import util.Logging
+import util.{Formatting, Logging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -20,6 +20,7 @@ import scala.concurrent.duration._
 class LunchbotActor(selfId: String)
   extends Actor
     with Logging
+    with Formatting
     with CommandParsing {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
@@ -30,24 +31,26 @@ class LunchbotActor(selfId: String)
 
     case message: Message if SlackUtil.mentionsId(message.text, selfId) =>
 
+      logger.debug(s"Got incoming message: $message")
+
       val slack = sender()
 
-      parse(message) match {
+      val textWithNoMentions = message.text.replaceAll(SlackUtil.mentionrx.toString(), "")
+
+      parse(message.copy(text = textWithNoMentions)) match {
 
         case Some(command) =>
           (lunchActor ? command)
             .mapTo[OutboundMessage]
-            .map(om => SendMessage(message.channel, s"${om.recipient.map(formatRecipient).getOrElse("")} ${om.text}"))
+            .map(om => SendMessage(message.channel, s"${om.recipient.map(formatMention).getOrElse("")} ${om.text}"))
             .pipeTo(slack)
 
         case None =>
-          slack ! SendMessage(message.channel, s"${formatRecipient(message.user)} I didn't quite get that...")
+          slack ! SendMessage(message.channel, s"${formatMention(message.user)} I didn't quite get that...")
 
       }
 
   }
-
-  private def formatRecipient(username: Username): String = s"<@$username>"
 
 }
 
@@ -55,6 +58,6 @@ object LunchbotActor {
 
   def props(selfId: String): Props = Props(new LunchbotActor(selfId))
 
-  case class OutboundMessage(text: String, recipient: Option[Username] = None)
+  case class OutboundMessage(text: String, recipient: Option[UserId] = None)
 
 }

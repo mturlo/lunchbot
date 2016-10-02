@@ -1,6 +1,6 @@
 package commands
 
-import model.Username
+import model.UserId
 import org.scalatest.{FlatSpec, MustMatchers}
 import slack.models.Message
 
@@ -9,7 +9,7 @@ import slack.models.Message
   */
 class CommandParsingSpec extends FlatSpec with MustMatchers {
 
-  val testUser: Username = "test_user"
+  val testUser: UserId = "test_user"
 
   private def getMessage(text: String): Message = {
     Message("", "", testUser, text, None)
