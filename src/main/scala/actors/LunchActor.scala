@@ -62,6 +62,15 @@ class LunchActor
       }
       stay
 
+    case Event(pay@Pay(eaterId), LunchData(_, _, eaters)) =>
+      eaters.get(eaterId) match {
+        case Some(eaterActor) =>
+          (eaterActor ? pay).pipeTo(sender)
+        case None =>
+          MentionMessage(s"You have to join this lunch first!", eaterId)
+      }
+      stay
+
     case Event(Cancel(canceller), LunchData(lunchmaster, _, _)) =>
       if (canceller == lunchmaster) {
         sender ! SimpleMessage("Cancelled current lunch process")
