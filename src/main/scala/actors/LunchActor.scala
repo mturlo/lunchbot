@@ -1,5 +1,6 @@
 package actors
 
+import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor.{HereMessage, MentionMessage, SimpleMessage}
 import akka.actor.{ActorRef, FSM, Props}
@@ -10,6 +11,7 @@ import model.UserId
 import util.{Formatting, Logging}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 /**
@@ -50,7 +52,7 @@ class LunchActor
           stay using currentData
         case None =>
           sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId)
-          stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props))
+          stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props(eaterId)))
       }
 
     case Event(choose@Choose(eaterId, _), LunchData(_, _, eaters)) =>
@@ -77,8 +79,34 @@ class LunchActor
         goto(Idle) using Empty
       } else {
         sender ! SimpleMessage("Only lunchmasters can cancel lunches!")
-        stay()
+        stay
       }
+
+    case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
+      val slack = sender
+      Future.traverse(eaters.values) { eaterRef =>
+        (eaterRef ? summary).mapTo[EaterReport]
+      } map { reports =>
+        val stateMessages = reports.groupBy(_.state) map {
+          case (Joined, reportsByState) =>
+            s"There are ${reportsByState.size} eaters who only joined the lunch"
+          case (FoodChosen, reportsByState) =>
+            s"There are ${reportsByState.size} eaters who chose their food"
+          case (Paid, reportsByState) =>
+            s"There are ${reportsByState.size} eaters who already paid for their food"
+        }
+        val totalFoods = reports.map(_.data).map {
+          case FoodData(food) => Some(food)
+          case _ => None
+        }
+        val totalFoodsMessage = totalFoods.flatten match {
+          case Nil => "Nobody has chosen their food yet"
+          case foods => s"The current order is:\n${foods.map(f => s"• $f").mkString("\n")}"
+        }
+        val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
+        slack ! SimpleMessage(summaryMessage)
+      }
+      stay
 
   }
 
@@ -103,6 +131,8 @@ object LunchActor {
       copy(eaters = eaters + (eaterId -> eaterActor))
     }
   }
+
+  case class EaterReport(eaterId: UserId, state: EaterActor.State, data: EaterActor.Data)
 
   def props: Props = Props[LunchActor]
 

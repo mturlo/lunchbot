@@ -13,12 +13,13 @@ class EaterActorSpec extends TestKit(ActorSystem("EaterActorSpec")) with FlatSpe
 
   it should "process food selection" in {
 
-    val eaterActor = TestFSMRef(new EaterActor)
+    val eater = "some_eater"
+
+    val eaterActor = TestFSMRef(new EaterActor(eater))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty
 
-    val eater = "some_eater"
 
     val food1 = "some_food"
     val food2 = "some_other_food"
@@ -41,12 +42,13 @@ class EaterActorSpec extends TestKit(ActorSystem("EaterActorSpec")) with FlatSpe
 
   it should "process payment" in {
 
-    val eaterActor = TestFSMRef(new EaterActor)
+    val eater = "some_eater"
+
+    val eaterActor = TestFSMRef(new EaterActor(eater))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty
 
-    val eater = "some_eater"
 
     val food = "some_food"
 

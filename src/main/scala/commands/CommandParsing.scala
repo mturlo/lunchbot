@@ -21,6 +21,8 @@ trait CommandParsing {
       case ("create", Some(place)) => Some(Create(message.user, place))
       case ("cancel", None) => Some(Cancel(message.user))
       case ("cancel", Some(_)) => None
+      case ("summary", None) => Some(Summary(message.user))
+      case ("summary", Some(_)) => None
       case ("join", None) => Some(Join(message.user))
       case ("join", Some(_)) => None
       case ("choose", None) => None

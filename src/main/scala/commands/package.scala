@@ -11,6 +11,8 @@ package object commands {
 
   case class Cancel(canceller: UserId) extends Command
 
+  case class Summary(caller: UserId) extends Command
+
   case class Join(eater: UserId) extends Command
 
   case class Choose(eater: UserId, food: String) extends Command
