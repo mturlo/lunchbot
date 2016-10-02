@@ -13,4 +13,6 @@ package object commands {
 
   case class Choose(eater: UserId, food: String) extends Command
 
+  case object Cancel extends Command
+
 }

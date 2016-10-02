@@ -38,6 +38,16 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
     parse(getMessage(" join a ")) mustBe None
   }
 
+  it should "parse cancel command" in new CommandParsing {
+    parse(getMessage("cancel")) mustBe Some(Cancel)
+    parse(getMessage(" cancel")) mustBe Some(Cancel)
+    parse(getMessage(" cancel ")) mustBe Some(Cancel)
+    parse(getMessage("cancel a")) mustBe None
+    parse(getMessage("cancel a ")) mustBe None
+    parse(getMessage("cancela")) mustBe None
+    parse(getMessage(" cancel a ")) mustBe None
+  }
+
   it should "parse choose command" in new CommandParsing {
     parse(getMessage("choose")) mustBe None
     parse(getMessage("choosea")) mustBe None
