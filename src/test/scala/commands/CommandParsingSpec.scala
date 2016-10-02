@@ -1,7 +1,7 @@
 package commands
 
 import model.UserId
-import org.scalatest.{FlatSpec, MustMatchers}
+import org.scalatest.{Assertion, FlatSpec, MustMatchers}
 import slack.models.Message
 
 /**
@@ -16,48 +16,55 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   }
 
   it should "parse create command" in new CommandParsing {
-    parse(getMessage("create")) mustBe None
-    parse(getMessage("create ")) mustBe None
-    parse(getMessage(" create")) mustBe None
-    parse(getMessage(" create ")) mustBe None
-    parse(getMessage("create a")) mustBe Some(Create(testUser, "a"))
-    parse(getMessage("create a ")) mustBe Some(Create(testUser, "a"))
-    parse(getMessage(" create a")) mustBe Some(Create(testUser, "a"))
-    parse(getMessage("create a b c")) mustBe Some(Create(testUser, "a b c"))
-    parse(getMessage("createa b c")) mustBe None
-    parse(getMessage("create a b c ")) mustBe Some(Create(testUser, "a b c"))
-  }
-
-  it should "parse join command" in new CommandParsing {
-    parse(getMessage("join")) mustBe Some(Join(testUser))
-    parse(getMessage(" join")) mustBe Some(Join(testUser))
-    parse(getMessage(" join ")) mustBe Some(Join(testUser))
-    parse(getMessage("join a")) mustBe None
-    parse(getMessage("join a ")) mustBe None
-    parse(getMessage("joina")) mustBe None
-    parse(getMessage(" join a ")) mustBe None
+    assertArgCommand("create", Create.apply, parse)
   }
 
   it should "parse cancel command" in new CommandParsing {
-    parse(getMessage("cancel")) mustBe Some(Cancel(testUser))
-    parse(getMessage(" cancel")) mustBe Some(Cancel(testUser))
-    parse(getMessage(" cancel ")) mustBe Some(Cancel(testUser))
-    parse(getMessage("cancel a")) mustBe None
-    parse(getMessage("cancel a ")) mustBe None
-    parse(getMessage("cancela")) mustBe None
-    parse(getMessage(" cancel a ")) mustBe None
+    assertNoArgCommand("cancel", Cancel(testUser), parse)
+  }
+
+  it should "parse join command" in new CommandParsing {
+    assertNoArgCommand("join", Join(testUser), parse)
   }
 
   it should "parse choose command" in new CommandParsing {
-    parse(getMessage("choose")) mustBe None
-    parse(getMessage("choosea")) mustBe None
-    parse(getMessage(" choosea")) mustBe None
-    parse(getMessage(" choose")) mustBe None
-    parse(getMessage(" choose ")) mustBe None
-    parse(getMessage("choose a")) mustBe Some(Choose(testUser, "a"))
-    parse(getMessage("choose a ")) mustBe Some(Choose(testUser, "a"))
-    parse(getMessage("choose a b c")) mustBe Some(Choose(testUser, "a b c"))
-    parse(getMessage("choose a b c ")) mustBe Some(Choose(testUser, "a b c"))
+    assertArgCommand("choose", Choose.apply, parse)
+  }
+
+  it should "parse pay command" in new CommandParsing {
+    assertNoArgCommand("pay", Pay(testUser), parse)
+  }
+
+  type ParseFunction = Message => Option[Command]
+
+  def assertArgCommand(commandName: String,
+                         expected: (String, String) => Command,
+                         parse: ParseFunction): Assertion = {
+
+    parse(getMessage(s"$commandName")) mustBe None
+    parse(getMessage(s"${commandName}a")) mustBe None
+    parse(getMessage(s" ${commandName}a")) mustBe None
+    parse(getMessage(s" $commandName")) mustBe None
+    parse(getMessage(s" $commandName ")) mustBe None
+    parse(getMessage(s"$commandName a")) mustBe Some(expected(testUser, "a"))
+    parse(getMessage(s"$commandName a ")) mustBe Some(expected(testUser, "a"))
+    parse(getMessage(s"$commandName a b c")) mustBe Some(expected(testUser, "a b c"))
+    parse(getMessage(s"$commandName a b c ")) mustBe Some(expected(testUser, "a b c"))
+
+  }
+  
+  def assertNoArgCommand(commandName: String, 
+                         expected: Command, 
+                         parse: ParseFunction): Assertion = {
+    
+    parse(getMessage(s"$commandName")) mustBe Some(expected)
+    parse(getMessage(s" $commandName")) mustBe Some(expected)
+    parse(getMessage(s" $commandName ")) mustBe Some(expected)
+    parse(getMessage(s"$commandName a")) mustBe None
+    parse(getMessage(s"$commandName a ")) mustBe None
+    parse(getMessage(s"${commandName}a")) mustBe None
+    parse(getMessage(s" $commandName a ")) mustBe None
+    
   }
 
 }
