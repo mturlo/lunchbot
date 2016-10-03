@@ -25,4 +25,12 @@ libraryDependencies ++= {
 
 scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-language:postfixOps")
 
+mainClass in assembly := Some("Main")
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs@_*) => MergeStrategy.discard
+  case PathList("reference.conf") => MergeStrategy.concat
+  case x => MergeStrategy.first
+}
+
 lazy val root = project in file(".")
