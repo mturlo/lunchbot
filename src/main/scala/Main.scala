@@ -3,7 +3,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import slack.rtm.SlackRtmClient
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
   * Created by mactur on 29/09/2016.
@@ -14,7 +14,9 @@ object Main extends App {
 
   val token: String = System.getenv("SLACK_API_KEY")
 
-  val client = SlackRtmClient(token)
+  val timeout: FiniteDuration = 30 seconds
+
+  val client = SlackRtmClient(token, timeout)
 
   val selfId: String = client.state.self.id
 
