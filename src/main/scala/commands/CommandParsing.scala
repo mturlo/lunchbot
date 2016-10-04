@@ -16,23 +16,31 @@ trait CommandParsing {
   }
 
   def parse(message: Message): Option[Command] = {
+    val commands = Set(
+      oneArgCommand("create", Create.apply) _,
+      noArgCommand("cancel", Cancel.apply) _,
+      noArgCommand("summary", Summary.apply) _,
+      noArgCommand("poke", Poke.apply) _,
+      noArgCommand("join", Join.apply) _,
+      oneArgCommand("choose", Choose.apply) _,
+      noArgCommand("pay", Pay.apply) _
+    )
     nameAndArgs(message.text.trim) flatMap {
-      case ("create", None) => None
-      case ("create", Some(place)) => Some(Create(message.user, place))
-      case ("cancel", None) => Some(Cancel(message.user))
-      case ("cancel", Some(_)) => None
-      case ("summary", None) => Some(Summary(message.user))
-      case ("summary", Some(_)) => None
-      case ("poke", None) => Some(Poke(message.user))
-      case ("poke", Some(_)) => None
-      case ("join", None) => Some(Join(message.user))
-      case ("join", Some(_)) => None
-      case ("choose", None) => None
-      case ("choose", Some(food)) => Some(Choose(message.user, food))
-      case ("pay", None) => Some(Pay(message.user))
-      case ("pay", Some(_)) => None
-      case _ => None
+      commands
+        .map(_ (message.user))
+        .reduce(_ orElse _)
+        .orElse { case _ => None }
     }
+  }
+
+  private def noArgCommand(name: String, command: String => Command)(caller: String): PartialFunction[(String, Option[String]), Option[Command]] = {
+    case (`name`, None) => Some(command(caller))
+    case (`name`, Some(_)) => None
+  }
+
+  private def oneArgCommand(name: String, command: (String, String) => Command)(caller: String): PartialFunction[(String, Option[String]), Option[Command]] = {
+    case (`name`, None) => None
+    case (`name`, Some(arg)) => Some(command(caller, arg))
   }
 
 }
