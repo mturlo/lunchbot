@@ -55,6 +55,7 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
     parse(getMessage(s" $commandName")) mustBe None
     parse(getMessage(s" $commandName ")) mustBe None
     parse(getMessage(s"$commandName a")) mustBe Some(expected(testUser, "a"))
+    parse(getMessage(s"$commandName\na")) mustBe Some(expected(testUser, "a"))
     parse(getMessage(s"$commandName a ")) mustBe Some(expected(testUser, "a"))
     parse(getMessage(s"$commandName a b c")) mustBe Some(expected(testUser, "a b c"))
     parse(getMessage(s"$commandName a b c ")) mustBe Some(expected(testUser, "a b c"))

@@ -8,7 +8,7 @@ import slack.models.Message
 trait CommandParsing {
 
   private def nameAndArgs(text: String): Option[(String, Option[String])] = {
-    text.split(" ").toSeq match {
+    text.split("\\s").toSeq match {
       case Nil => None
       case name +: Nil => Some(name -> None)
       case name +: args => Some(name -> Some(args.mkString(" ")))
@@ -40,7 +40,7 @@ trait CommandParsing {
 
   private def oneArgCommand(name: String, command: (String, String) => Command)(caller: String): PartialFunction[(String, Option[String]), Option[Command]] = {
     case (`name`, None) => None
-    case (`name`, Some(arg)) => Some(command(caller, arg))
+    case (`name`, Some(arg)) => Some(command(caller, arg.trim))
   }
 
 }
