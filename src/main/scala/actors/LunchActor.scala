@@ -2,7 +2,7 @@ package actors
 
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
-import actors.LunchbotActor.{HereMessage, MentionMessage, SimpleMessage}
+import actors.LunchbotActor._
 import akka.actor.{ActorRef, FSM, Props}
 import akka.pattern._
 import akka.util.Timeout
@@ -10,8 +10,8 @@ import commands._
 import model.UserId
 import util.{Formatting, Logging}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future._
 import scala.concurrent.duration._
 
 /**
@@ -23,6 +23,7 @@ class LunchActor
     with Formatting {
 
   implicit val askTimeout = Timeout(1 second)
+  implicit val executionContext: ExecutionContext = context.dispatcher
 
   startWith(Idle, Empty)
 
@@ -85,7 +86,10 @@ class LunchActor
     case Event(poke@Poke(poker), LunchData(lunchmaster, _, eaters)) =>
       val slack = sender
       if (poker == lunchmaster) {
-        eaters.values.map(_ ? poke).map(_.pipeTo(slack))
+        traverse(eaters.values)(_ ? poke)
+          .mapTo[Seq[OutboundMessage]]
+          .map(MessageBundle)
+          .map(slack ! _)
       } else {
         sender ! SimpleMessage("Only lunchmasters can poke eaters!")
       }
@@ -93,7 +97,7 @@ class LunchActor
 
     case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
       val slack = sender
-      Future.traverse(eaters.values) { eaterRef =>
+      traverse(eaters.values) { eaterRef =>
         (eaterRef ? summary).mapTo[EaterReport]
       } map { reports =>
         val stateMessages = reports.groupBy(_.state) map {

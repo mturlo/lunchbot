@@ -1,6 +1,6 @@
 package actors
 
-import actors.LunchbotActor.OutboundMessage
+import actors.LunchbotActor.{MessageBundle, OutboundMessage}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
@@ -11,7 +11,7 @@ import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.{Formatting, Logging}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 /**
@@ -24,6 +24,7 @@ class LunchbotActor(selfId: String)
     with CommandParsing {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
+  implicit val executionContext: ExecutionContext = context.dispatcher
 
   val lunchActor: ActorRef = context.actorOf(LunchActor.props)
 
@@ -31,7 +32,7 @@ class LunchbotActor(selfId: String)
 
     case message: Message if SlackUtil.mentionsId(message.text, selfId) =>
 
-      logger.debug(s"Got incoming message: $message")
+      logger.debug(s"BOT IN: $message")
 
       val slack = sender()
 
@@ -42,14 +43,23 @@ class LunchbotActor(selfId: String)
         case Some(command) =>
           (lunchActor ? command)
             .mapTo[OutboundMessage]
-            .map(om => SendMessage(message.channel, om.getText))
-            .pipeTo(slack)
+            .map(unbundle)
+            .map(_.map { out => SendMessage(message.channel, out.getText) })
+            .map(_.map { out => logger.debug(s"BOT OUT: $out"); out })
+            .map(_.foreach(slack ! _))
 
         case None =>
           slack ! SendMessage(message.channel, s"${formatMention(message.user)} I didn't quite get that...")
 
       }
 
+  }
+
+  private def unbundle(outboundMessage: OutboundMessage): Seq[OutboundMessage] = {
+    outboundMessage match {
+      case MessageBundle(outboundMessages) => outboundMessages
+      case singleOutboundMessage => Seq(singleOutboundMessage)
+    }
   }
 
 }
@@ -72,6 +82,10 @@ object LunchbotActor extends Formatting {
 
   case class SimpleMessage(text: String) extends OutboundMessage {
     override def getText: String = text
+  }
+
+  case class MessageBundle(messages: Seq[OutboundMessage]) extends OutboundMessage {
+    override def getText: String = messages.map(_.getText).mkString("\n")
   }
 
 }
