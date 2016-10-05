@@ -31,7 +31,7 @@ class LunchbotActor(selfId: String)
 
   override def receive: Receive = {
 
-    case message: Message if SlackUtil.mentionsId(message.text, selfId) =>
+    case message: Message if SlackUtil.mentionsId(message.text, selfId) && message.user != selfId=>
 
       logger.debug(s"BOT IN: $message")
 
