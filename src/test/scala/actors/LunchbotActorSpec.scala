@@ -45,26 +45,4 @@ class LunchbotActorSpec
 
   }
 
-  it should "return a message for every poked eater" in {
-
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId))
-
-    lunchbotActor ! getMessage(s"${formatMention(selfId)} create some lunch")
-
-    expectMsgClass(classOf[SendMessage])
-
-    val eater1 = "some_eater"
-    val eater2 = "some_other_eater"
-
-    lunchbotActor ! getMessage(s"${formatMention(selfId)} join", eater1)
-    lunchbotActor ! getMessage(s"${formatMention(selfId)} join", eater2)
-
-    receiveN(2) foreach (_ mustBe a[SendMessage])
-
-    lunchbotActor ! getMessage(s"${formatMention(selfId)} poke")
-
-    receiveN(2) foreach (_ mustBe a[SendMessage])
-
-  }
-
 }
