@@ -19,14 +19,14 @@ trait CommandParsing {
 
   def parse(message: Message): Option[Command] = {
 
-    val nonAppliedPartials: Set[String => CommandPartial] = {
+    val nonAppliedPartials: Seq[String => CommandPartial] = {
       allCommands.map {
         case oneArg: OneArgCommand[_] => oneArgCommand(oneArg.name, oneArg.apply) _
         case noArg: NoArgCommand[_] => noArgCommand(noArg.name, noArg.apply) _
       }
     }
 
-    val appliedPartials: Set[CommandPartial] = nonAppliedPartials.map(_.apply(message.user))
+    val appliedPartials: Seq[CommandPartial] = nonAppliedPartials.map(_.apply(message.user))
 
     val reducedPartials: CommandPartial = appliedPartials.reduce(_ orElse _)
 

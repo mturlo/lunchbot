@@ -13,6 +13,8 @@ package object commands {
 
     def name: String
 
+    def description: String
+
   }
 
   sealed trait OneArgCommand[T] extends NoArgCommand[T] {
@@ -39,46 +41,69 @@ package object commands {
 
   case class Pay(payer: UserId) extends Command
 
-  object Create extends OneArgCommand[Create] {
-    override def argName: String = "name or URL of the place"
+  case class Help(caller: UserId) extends Command
 
+  object Create extends OneArgCommand[Create] {
     override def name: String = "create"
+
+    override def description: String = s"creates a new lunch at `<$argName>`"
+
+    override def argName: String = "name or URL of the place"
   }
 
   object Cancel extends NoArgCommand[Cancel] {
     override def name: String = "cancel"
+
+    override def description: String = "cancels current lunch"
   }
 
   object Summary extends NoArgCommand[Summary] {
     override def name: String = "summary"
+
+    override def description: String = "returns lunch summary"
   }
 
   object Poke extends NoArgCommand[Poke] {
     override def name: String = "poke"
+
+    override def description: String = "pokes all eaters that are lazy with their order"
   }
 
   object Join extends NoArgCommand[Join] {
     override def name: String = "join"
+
+    override def description: String = "joins the current lunch"
   }
 
   object Choose extends OneArgCommand[Choose] {
-    override def argName: String = "food name"
-
     override def name: String = "choose"
+
+    override def description: String = s"chooses food with `<$argName>`"
+
+    override def argName: String = "food name"
   }
 
   object Pay extends NoArgCommand[Pay] {
     override def name: String = "pay"
+
+    override def description: String = "notifies about payment being made"
   }
 
-  val allCommands = Set(
+  object Help extends NoArgCommand[Help] {
+    override def name: String = "help"
+
+    override def description: String = "prints this usage text"
+  }
+
+  val allCommands = Seq(
     Create,
     Cancel,
     Summary,
     Poke,
     Join,
     Choose,
-    Pay
+    Pay,
+    Help
   )
 
 }

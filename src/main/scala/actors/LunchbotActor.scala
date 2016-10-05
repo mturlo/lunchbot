@@ -4,7 +4,7 @@ import actors.LunchbotActor.{MessageBundle, OutboundMessage}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
-import commands.CommandParsing
+import commands.{CommandParsing, CommandUsage, Help}
 import model.UserId
 import slack.SlackUtil
 import slack.models.Message
@@ -21,7 +21,8 @@ class LunchbotActor(selfId: String)
   extends Actor
     with Logging
     with Formatting
-    with CommandParsing {
+    with CommandParsing
+    with CommandUsage {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -39,6 +40,9 @@ class LunchbotActor(selfId: String)
       val textWithNoMentions = message.text.replaceAll(SlackUtil.mentionrx.toString(), "")
 
       parse(message.copy(text = textWithNoMentions)) match {
+
+        case Some(Help(_)) =>
+          slack ! SendMessage(message.channel, renderUsage)
 
         case Some(command) =>
           (lunchActor ? command)
