@@ -56,6 +56,16 @@ class LunchActor
           stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props(eaterId)))
       }
 
+    case Event(Leave(eaterId), currentData@LunchData(_, place, eaters)) =>
+      eaters.get(eaterId) match {
+        case Some(_) =>
+          sender ! MentionMessage(s"Well, see you next time!", eaterId)
+          stay using currentData
+        case None =>
+          sender ! MentionMessage(s"You were not going to eat at $place anyway", eaterId)
+          stay using currentData.popEater(eaterId)
+      }
+
     case Event(choose@Choose(eaterId, _), LunchData(_, _, eaters)) =>
       eaters.get(eaterId) match {
         case Some(eaterActor) =>
@@ -142,6 +152,9 @@ object LunchActor {
   case class LunchData(lunchmaster: UserId, place: String, eaters: Map[UserId, ActorRef]) extends Data {
     def withEater(eaterId: UserId, eaterActor: ActorRef): LunchData = {
       copy(eaters = eaters + (eaterId -> eaterActor))
+    }
+    def popEater(eaterId: UserId): LunchData = {
+      copy(eaters = eaters - eaterId)
     }
   }
 

@@ -37,6 +37,8 @@ package object commands {
 
   case class Join(eater: UserId) extends Command
 
+  case class Leave(eater: UserId) extends Command
+
   case class Choose(eater: UserId, food: String) extends Command
 
   case class Pay(payer: UserId) extends Command
@@ -75,6 +77,12 @@ package object commands {
     override def description: String = "joins the current lunch"
   }
 
+  object Leave extends NoArgCommand[Leave] {
+    override def name: String = "leave"
+
+    override def description: String = "leaves the current lunch"
+  }
+
   object Choose extends OneArgCommand[Choose] {
     override def name: String = "choose"
 
@@ -101,6 +109,7 @@ package object commands {
     Summary,
     Poke,
     Join,
+    Leave,
     Choose,
     Pay,
     Help
