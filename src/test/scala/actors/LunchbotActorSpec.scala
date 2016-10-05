@@ -45,4 +45,16 @@ class LunchbotActorSpec
 
   }
 
+  it should "not react to own mentions" in {
+
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId))
+
+    val messageWithMention = getMessage(s"<@$selfId> hey there!", selfId)
+
+    lunchbotActor ! messageWithMention
+
+    expectNoMsg()
+
+  }
+
 }
