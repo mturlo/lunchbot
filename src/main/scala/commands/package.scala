@@ -7,9 +7,7 @@ package object commands {
 
   sealed trait Command
 
-  sealed trait NoArgCommand {
-
-    def apply(caller: UserId): Command
+  sealed trait CommandDescription {
 
     def name: String
 
@@ -17,9 +15,13 @@ package object commands {
 
   }
 
-  sealed trait OneArgCommand extends NoArgCommand {
+  sealed trait NoArgCommand extends CommandDescription {
 
-    override def apply(caller: UserId): Command = apply(caller, "")
+    def apply(caller: UserId): Command
+
+  }
+
+  sealed trait OneArgCommand extends CommandDescription {
 
     def apply(caller: UserId, arg: String): Command
 
