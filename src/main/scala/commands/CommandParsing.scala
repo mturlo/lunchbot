@@ -7,6 +7,8 @@ import slack.models.Message
   */
 trait CommandParsing {
 
+  type CommandPartial = PartialFunction[(String, Option[String]), Option[Command]]
+
   private def nameAndArgs(text: String): Option[(String, Option[String])] = {
     text.split("\\s").toSeq match {
       case Nil => None
@@ -16,29 +18,34 @@ trait CommandParsing {
   }
 
   def parse(message: Message): Option[Command] = {
-    val commands = Set(
-      oneArgCommand("create", Create.apply) _,
-      noArgCommand("cancel", Cancel.apply) _,
-      noArgCommand("summary", Summary.apply) _,
-      noArgCommand("poke", Poke.apply) _,
-      noArgCommand("join", Join.apply) _,
-      oneArgCommand("choose", Choose.apply) _,
-      noArgCommand("pay", Pay.apply) _
-    )
-    nameAndArgs(message.text.trim) flatMap {
-      commands
-        .map(_ (message.user))
-        .reduce(_ orElse _)
-        .orElse { case _ => None }
+
+    val nonAppliedPartials: Set[String => CommandPartial] = {
+      allCommands.map {
+        case oneArg: OneArgCommand[_] => oneArgCommand(oneArg.name, oneArg.apply) _
+        case noArg: NoArgCommand[_] => noArgCommand(noArg.name, noArg.apply) _
+      }
     }
+
+    val appliedPartials: Set[CommandPartial] = nonAppliedPartials.map(_.apply(message.user))
+
+    val reducedPartials: CommandPartial = appliedPartials.reduce(_ orElse _)
+
+    val unhandledPartial: CommandPartial = {
+      case _ => None
+    }
+
+    nameAndArgs(message.text.trim) flatMap {
+      reducedPartials orElse unhandledPartial
+    }
+
   }
 
-  private def noArgCommand(name: String, command: String => Command)(caller: String): PartialFunction[(String, Option[String]), Option[Command]] = {
+  private def noArgCommand(name: String, command: String => Command)(caller: String): CommandPartial = {
     case (`name`, None) => Some(command(caller))
     case (`name`, Some(_)) => None
   }
 
-  private def oneArgCommand(name: String, command: (String, String) => Command)(caller: String): PartialFunction[(String, Option[String]), Option[Command]] = {
+  private def oneArgCommand(name: String, command: (String, String) => Command)(caller: String): CommandPartial = {
     case (`name`, None) => None
     case (`name`, Some(arg)) => Some(command(caller, arg.trim))
   }
