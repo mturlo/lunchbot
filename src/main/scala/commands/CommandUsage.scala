@@ -1,13 +1,18 @@
 package commands
 
+import model.UserId
+import util.Formatting
+
 /**
   * Created by mactur on 05/10/2016.
   */
 trait CommandUsage {
 
-  def renderUsage: String = {
+  self: Formatting =>
 
-    val header = "usage: @lunchbot `[command]` `[args...]`"
+  def renderUsage(selfId: UserId): String = {
+
+    val header = s"usage: ${formatMention(selfId)} `[command]` `[args...]`"
 
     val commands = allCommands.map {
 

@@ -42,7 +42,7 @@ class LunchbotActor(selfId: String)
       parse(message.copy(text = textWithNoMentions)) match {
 
         case Some(Help(_)) =>
-          slack ! SendMessage(message.channel, renderUsage)
+          slack ! SendMessage(message.channel, renderUsage(selfId))
 
         case Some(command) =>
           (lunchActor ? command)
