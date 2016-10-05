@@ -22,7 +22,7 @@ class LunchActor
     with Logging
     with Formatting {
 
-  implicit val askTimeout = Timeout(1 second)
+  implicit val askTimeout = Timeout(100 milliseconds)
   implicit val executionContext: ExecutionContext = context.dispatcher
 
   startWith(Idle, Empty)
@@ -86,7 +86,12 @@ class LunchActor
     case Event(poke@Poke(poker), LunchData(lunchmaster, _, eaters)) =>
       val slack = sender
       if (poker == lunchmaster) {
-        traverse(eaters.values)(_ ? poke)
+        sequence {
+          eaters.values
+            .map(_ ? poke)
+            .map(_.map(Some(_)))
+            .map(_.recover(PartialFunction(_ => None)))
+        }.map(_.flatten)
           .mapTo[Seq[OutboundMessage]]
           .map(MessageBundle)
           .map(slack ! _)

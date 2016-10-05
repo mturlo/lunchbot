@@ -4,11 +4,8 @@ import actors.LunchActor.{Empty, Idle, InProgress, LunchData}
 import actors.LunchbotActor._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
-import akka.util.Timeout
 import commands._
 import org.scalatest.{FlatSpecLike, MustMatchers}
-
-import scala.concurrent.duration._
 
 /**
   * Created by mactur on 02/10/2016.
@@ -18,8 +15,6 @@ class LunchActorSpec
     with ImplicitSender
     with FlatSpecLike
     with MustMatchers {
-
-  implicit val askTimeout: Timeout = Timeout(100 milliseconds)
 
   it should "process lunch creation and cancellation" in {
 
