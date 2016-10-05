@@ -21,8 +21,8 @@ trait CommandParsing {
 
     val nonAppliedPartials: Seq[String => CommandPartial] = {
       allCommands.map {
-        case oneArg: OneArgCommand[_] => oneArgCommand(oneArg.name, oneArg.apply) _
-        case noArg: NoArgCommand[_] => noArgCommand(noArg.name, noArg.apply) _
+        case oneArg: OneArgCommand => oneArgCommand(oneArg.name, oneArg.apply) _
+        case noArg: NoArgCommand => noArgCommand(noArg.name, noArg.apply) _
       }
     }
 

@@ -16,10 +16,10 @@ trait CommandUsage {
 
     val commands = allCommands.map {
 
-      case oneArg: OneArgCommand[_] =>
+      case oneArg: OneArgCommand =>
         s"• `${oneArg.name}` `<${oneArg.argName}>` - ${oneArg.description}"
 
-      case noArg: NoArgCommand[_] =>
+      case noArg: NoArgCommand =>
         s"• `${noArg.name}` - ${noArg.description}"
 
     }
