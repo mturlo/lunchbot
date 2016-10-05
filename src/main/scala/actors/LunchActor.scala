@@ -10,9 +10,10 @@ import commands._
 import model.UserId
 import util.{Formatting, Logging}
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.Future._
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.ClassTag
 
 /**
   * Created by mactur on 01/10/2016.
@@ -86,49 +87,54 @@ class LunchActor
     case Event(poke@Poke(poker), LunchData(lunchmaster, _, eaters)) =>
       val slack = sender
       if (poker == lunchmaster) {
-        sequence {
-          eaters.values
-            .map(_ ? poke)
-            .map(_.map(Some(_)))
-            .map(_.recover(PartialFunction(_ => None)))
-        }.map(_.flatten)
-          .mapTo[Seq[OutboundMessage]]
+        fanIn[OutboundMessage](eaters.values.toSeq, poke)
           .map(MessageBundle)
           .map(slack ! _)
       } else {
-        sender ! SimpleMessage("Only lunchmasters can poke eaters!")
+        slack ! SimpleMessage("Only lunchmasters can poke eaters!")
       }
       stay
 
     case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
       val slack = sender
-      traverse(eaters.values) { eaterRef =>
-        (eaterRef ? summary).mapTo[EaterReport]
-      } map { reports =>
-        val stateMessages = reports.groupBy(_.state) map {
-          case (Joined, reportsByState) =>
-            s"There are ${reportsByState.size} eaters who only joined the lunch"
-          case (FoodChosen, reportsByState) =>
-            s"There are ${reportsByState.size} eaters who chose their food"
-          case (Paid, reportsByState) =>
-            s"There are ${reportsByState.size} eaters who already paid for their food"
+      fanIn[EaterReport](eaters.values.toSeq, summary)
+        .map { reports =>
+          val stateMessages = reports.groupBy(_.state) map {
+            case (Joined, reportsByState) =>
+              s"There are ${reportsByState.size} eaters who only joined the lunch"
+            case (FoodChosen, reportsByState) =>
+              s"There are ${reportsByState.size} eaters who chose their food"
+            case (Paid, reportsByState) =>
+              s"There are ${reportsByState.size} eaters who already paid for their food"
+          }
+          val totalFoods = reports.map(_.data).map {
+            case FoodData(food) => Some(food)
+            case _ => None
+          }
+          val totalFoodsMessage = totalFoods.flatten match {
+            case Nil => "Nobody has chosen their food yet"
+            case foods => s"The current order is:\n${foods.map(f => s"• $f").mkString("\n")}"
+          }
+          val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
+          slack ! SimpleMessage(summaryMessage)
         }
-        val totalFoods = reports.map(_.data).map {
-          case FoodData(food) => Some(food)
-          case _ => None
-        }
-        val totalFoodsMessage = totalFoods.flatten match {
-          case Nil => "Nobody has chosen their food yet"
-          case foods => s"The current order is:\n${foods.map(f => s"• $f").mkString("\n")}"
-        }
-        val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
-        slack ! SimpleMessage(summaryMessage)
-      }
       stay
 
   }
 
   initialize
+
+  private def fanIn[T](actors: Seq[ActorRef], command: Command)(implicit tag: ClassTag[T]): Future[Seq[T]] = {
+    sequence(
+      actors
+        .map(_ ? command)
+        .map(
+          _.mapTo[T]
+            .map(Some(_))
+            .recover(PartialFunction(_ => None))
+        )
+    ).map(_.flatten)
+  }
 
 }
 
