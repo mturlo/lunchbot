@@ -124,7 +124,9 @@ class LunchActor
           }
           val totalFoodsMessage = totalFoods.flatten match {
             case Nil => "Nobody has chosen their food yet"
-            case foods => s"The current order is:\n${foods.map(f => s"• $f").mkString("\n")}"
+            case foods =>
+              val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
+              s"The current order is:\n${foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")}"
           }
           val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
           slack ! SimpleMessage(summaryMessage)
