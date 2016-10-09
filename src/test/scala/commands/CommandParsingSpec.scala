@@ -15,43 +15,18 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
     Message("", "", testUser, text, None)
   }
 
-  it should "parse create command" in new CommandParsing {
-    assertArgCommand("create", Create.apply, parse)
-  }
-
-  it should "parse cancel command" in new CommandParsing {
-    assertNoArgCommand("cancel", Cancel.apply, parse)
-  }
-
-  it should "parse join command" in new CommandParsing {
-    assertNoArgCommand("join", Join.apply, parse)
-  }
-
-  it should "parse choose command" in new CommandParsing {
-    assertArgCommand("choose", Choose.apply, parse)
-  }
-
-  it should "parse pay command" in new CommandParsing {
-    assertNoArgCommand("pay", Pay.apply, parse)
-  }
-
-  it should "parse summary command" in new CommandParsing {
-    assertNoArgCommand("summary", Summary.apply, parse)
-  }
-
-  it should "parse poke command" in new CommandParsing {
-    assertNoArgCommand("poke", Poke.apply, parse)
-  }
-
-  it should "parse help command" in new CommandParsing {
-    assertNoArgCommand("help", Help.apply, parse)
+  it should "parse all commands" in new CommandParsing {
+    allCommands foreach {
+      case oneArg: OneArgCommand => assertOneArgCommand(oneArg.name, oneArg.apply, parse)
+      case noArg: NoArgCommand => assertNoArgCommand(noArg.name, noArg.apply, parse)
+    }
   }
 
   type ParseFunction = Message => Option[Command]
 
-  def assertArgCommand(commandName: String,
-                       expected: (UserId, String) => Command,
-                       parse: ParseFunction): Assertion = {
+  def assertOneArgCommand(commandName: String,
+                          expected: (UserId, String) => Command,
+                          parse: ParseFunction): Assertion = {
 
     parse(getMessage(s"$commandName")) mustBe None
     parse(getMessage(s"${commandName}a")) mustBe None

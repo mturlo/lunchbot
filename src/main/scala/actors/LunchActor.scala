@@ -3,11 +3,12 @@ package actors
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.{ActorRef, FSM, Props}
+import akka.actor.{ActorRef, FSM, PoisonPill, Props}
 import akka.pattern._
 import akka.util.Timeout
 import commands._
-import model.UserId
+import model.Statuses.{apply => _, _}
+import model.{Statuses, UserId}
 import util.{Formatting, Logging}
 
 import scala.concurrent.Future._
@@ -32,11 +33,11 @@ class LunchActor
 
     case Event(Create(lunchmaster, place), _) =>
       val formattedPlace = formatUrl(place)
-      sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(lunchmaster)} as Lunchmaster")
+      sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(lunchmaster)} as Lunchmaster", Success)
       goto(InProgress) using LunchData(lunchmaster, formattedPlace, Map.empty)
 
     case Event(_, _) =>
-      sender ! SimpleMessage("No current running lunch processes")
+      sender ! SimpleMessage("No current running lunch processes", Failure)
       stay
 
   }
@@ -44,17 +45,28 @@ class LunchActor
   when(InProgress) {
 
     case Event(Create(_, _), LunchData(lunchmaster, place, _)) =>
-      sender ! SimpleMessage(s"There is already a running lunch process at: $place with ${formatMention(lunchmaster)} as Lunchmaster")
+      sender ! SimpleMessage(s"There is already a running lunch process at: $place with ${formatMention(lunchmaster)} as Lunchmaster", Failure)
       stay
 
     case Event(Join(eaterId), currentData@LunchData(_, place, eaters)) =>
       eaters.get(eaterId) match {
         case Some(_) =>
-          sender ! MentionMessage(s"You've already joined this lunch!", eaterId)
+          sender ! MentionMessage(s"You've already joined this lunch!", eaterId, Failure)
           stay using currentData
         case None =>
-          sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId)
+          sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId, Success)
           stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props(eaterId)))
+      }
+
+    case Event(Leave(eaterId), currentData@LunchData(_, place, eaters)) =>
+      eaters.get(eaterId) match {
+        case Some(eater) =>
+          sender ! MentionMessage(s"Well, see you next time!", eaterId, Success)
+          eater ! PoisonPill
+          stay using currentData.removeEater(eaterId)
+        case None =>
+          sender ! MentionMessage(s"You were not going to eat at $place anyway", eaterId, Failure)
+          stay using currentData
       }
 
     case Event(choose@Choose(eaterId, _), LunchData(_, _, eaters)) =>
@@ -62,7 +74,7 @@ class LunchActor
         case Some(eaterActor) =>
           (eaterActor ? choose).pipeTo(sender)
         case None =>
-          MentionMessage(s"You have to join this lunch first!", eaterId)
+          sender ! MentionMessage(s"You have to join this lunch first!", eaterId, Failure)
       }
       stay
 
@@ -71,16 +83,16 @@ class LunchActor
         case Some(eaterActor) =>
           (eaterActor ? pay).pipeTo(sender)
         case None =>
-          MentionMessage(s"You have to join this lunch first!", eaterId)
+          MentionMessage(s"You have to join this lunch first!", eaterId, Failure)
       }
       stay
 
     case Event(Cancel(canceller), LunchData(lunchmaster, _, _)) =>
       if (canceller == lunchmaster) {
-        sender ! SimpleMessage("Cancelled current lunch process")
+        sender ! SimpleMessage("Cancelled current lunch process", Success)
         goto(Idle) using Empty
       } else {
-        sender ! SimpleMessage("Only lunchmasters can cancel lunches!")
+        sender ! SimpleMessage("Only lunchmasters can cancel lunches!", Failure)
         stay
       }
 
@@ -91,12 +103,30 @@ class LunchActor
           .map(MessageBundle)
           .map(slack ! _)
       } else {
-        slack ! SimpleMessage("Only lunchmasters can poke eaters!")
+        slack ! SimpleMessage("Only lunchmasters can poke eaters!", Failure)
       }
       stay
 
+    case Event(Kick(kicker, kicked), currentData@LunchData(lunchmaster, _, eaters)) =>
+      val slack = sender
+      if (kicker == lunchmaster) {
+        eaters.get(kicked) match {
+          case Some(eater) =>
+            sender ! SimpleMessage(s"Successfully kicked ${formatMention(kicked)} from the current lunch", Success)
+            eater ! PoisonPill
+            stay using currentData.removeEater(kicked)
+          case None =>
+            slack ! SimpleMessage("But he hasn't even joined the lunch yet!", Failure)
+            stay
+        }
+      } else {
+        slack ! SimpleMessage("Only lunchmasters can kick eaters!", Failure)
+        stay
+      }
+
     case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
       val slack = sender
+      logger.debug(s"Summary requested for current eaters: $eaters")
       fanIn[EaterReport](eaters.values.toSeq, summary)
         .map { reports =>
           val stateMessages = reports.groupBy(_.state) map {
@@ -113,10 +143,12 @@ class LunchActor
           }
           val totalFoodsMessage = totalFoods.flatten match {
             case Nil => "Nobody has chosen their food yet"
-            case foods => s"The current order is:\n${foods.map(f => s"• $f").mkString("\n")}"
+            case foods =>
+              val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
+              s"The current order is:\n${foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")}"
           }
           val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
-          slack ! SimpleMessage(summaryMessage)
+          slack ! SimpleMessage(summaryMessage, Success)
         }
       stay
 
@@ -151,9 +183,15 @@ object LunchActor {
   case object Empty extends Data
 
   case class LunchData(lunchmaster: UserId, place: String, eaters: Map[UserId, ActorRef]) extends Data {
+
     def withEater(eaterId: UserId, eaterActor: ActorRef): LunchData = {
       copy(eaters = eaters + (eaterId -> eaterActor))
     }
+
+    def removeEater(eaterId: UserId): LunchData = {
+      copy(eaters = eaters - eaterId)
+    }
+
   }
 
   case class EaterReport(eaterId: UserId, state: EaterActor.State, data: EaterActor.Data)

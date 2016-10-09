@@ -14,7 +14,8 @@ class LunchActorSpec
   extends TestKit(ActorSystem("LunchActorSpec"))
     with ImplicitSender
     with FlatSpecLike
-    with MustMatchers {
+    with MustMatchers
+    with MessageAssertions {
 
   it should "process lunch creation and cancellation" in {
 
@@ -33,7 +34,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
 
-    expectMsgType[HereMessage]
+    expectSuccess[HereMessage]
 
     // second create should have no effect
 
@@ -42,7 +43,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
 
-    expectMsgType[SimpleMessage]
+    expectFailure[SimpleMessage]
 
     // cancelling the lunch
 
@@ -51,7 +52,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
 
-    expectMsgType[SimpleMessage]
+    expectSuccess[SimpleMessage]
 
     // second cancel should have no effect
 
@@ -60,7 +61,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
 
-    expectMsgType[SimpleMessage]
+    expectFailure[SimpleMessage]
 
     val lunchmaster2 = "some_other_lunchmaster"
     val place2 = "some_other_place"
@@ -72,7 +73,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
 
-    expectMsgType[HereMessage]
+    expectSuccess[HereMessage]
 
     // only the current lunchmaster can cancel the lunch
 
@@ -81,7 +82,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
 
-    expectMsgType[SimpleMessage]
+    expectFailure[SimpleMessage]
 
   }
 
@@ -102,7 +103,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
 
-    expectMsgType[HereMessage]
+    expectSuccess[HereMessage]
 
     val eater1 = "some_eater"
     val eater2 = "some_other_eater"
@@ -116,7 +117,7 @@ class LunchActorSpec
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
 
-    expectMsgType[MentionMessage]
+    expectSuccess[MentionMessage]
 
     // second join should have no effect
 
@@ -127,7 +128,7 @@ class LunchActorSpec
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
 
-    expectMsgType[MentionMessage]
+    expectFailure[MentionMessage]
 
     // second eater joins
 
@@ -139,7 +140,54 @@ class LunchActorSpec
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater2
 
-    expectMsgType[MentionMessage]
+    expectSuccess[MentionMessage]
+
+  }
+
+  it should "process eater leaves" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectSuccess[HereMessage]
+
+    val eater1 = "some_eater"
+    val eater2 = "some_other_eater"
+    val eater3 = "yet_another_eater"
+
+    // eaters join the lunch
+
+    lunchActor ! Join(eater1)
+    lunchActor ! Join(eater2)
+    lunchActor ! Join(eater3)
+
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 3
+
+    // one eater leaves
+
+    lunchActor ! Leave(eater1)
+
+    expectSuccess[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
+
+    // further leaves for the eater have no effect
+
+    lunchActor ! Leave(eater1)
+
+    expectFailure[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
 
   }
 
@@ -154,7 +202,7 @@ class LunchActorSpec
 
     lunchActor ! Create(lunchmaster, place)
 
-    expectMsgType[HereMessage]
+    expectSuccess[HereMessage]
 
     val eater1 = "some_eater"
     val eater2 = "some_other_eater"
@@ -166,9 +214,9 @@ class LunchActorSpec
     lunchActor ! Join(eater2)
     lunchActor ! Join(eater3)
 
-    expectMsgType[MentionMessage]
-    expectMsgType[MentionMessage]
-    expectMsgType[MentionMessage]
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
 
     // lunchmaster pokes them
 
@@ -182,7 +230,7 @@ class LunchActorSpec
 
     lunchActor ! Choose(eater1, "some food")
 
-    expectMsgType[MentionMessage]
+    expectSuccess[MentionMessage]
 
     // lunchmaster pokes the other two
 
@@ -191,6 +239,56 @@ class LunchActorSpec
     expectMsgPF() {
       case MessageBundle(messages) => messages must have size 2
     }
+
+  }
+
+  it should "kick eaters" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectSuccess[HereMessage]
+
+    val eater1 = "some_eater"
+    val eater2 = "some_other_eater"
+
+    // eaters join the lunch
+
+    lunchActor ! Join(eater1)
+    lunchActor ! Join(eater2)
+
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+
+    // lunchmaster kicks one eater
+
+    lunchActor ! Kick(lunchmaster, eater1)
+
+    expectSuccess[SimpleMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+    // kicks by other users have no effect
+
+    lunchActor ! Kick(eater1, eater2)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+    // kicking the same user again has no effect
+
+    lunchActor ! Kick(lunchmaster, eater1)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
 
   }
 
