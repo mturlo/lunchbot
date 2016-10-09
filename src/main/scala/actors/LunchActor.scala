@@ -73,7 +73,7 @@ class LunchActor
         case Some(eaterActor) =>
           (eaterActor ? choose).pipeTo(sender)
         case None =>
-          MentionMessage(s"You have to join this lunch first!", eaterId)
+          sender ! MentionMessage(s"You have to join this lunch first!", eaterId)
       }
       stay
 
