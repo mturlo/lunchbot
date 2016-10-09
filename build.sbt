@@ -34,3 +34,11 @@ assemblyMergeStrategy in assembly := {
 }
 
 lazy val root = project in file(".")
+
+// scalastyle check on compile
+
+lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
+
+compileScalastyle := org.scalastyle.sbt.ScalastylePlugin.scalastyle.in(Compile).toTask("").value
+
+(compile in Compile) <<= (compile in Compile) dependsOn compileScalastyle
