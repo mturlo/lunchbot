@@ -37,7 +37,7 @@ class LunchbotActor(selfId: String)
 
       val slack = sender()
 
-      val textWithNoMentions = message.text.replaceAll(SlackUtil.mentionrx.toString(), "")
+      val textWithNoMentions = removeMentions(message.text).replaceAll(selfId, "")
 
       parse(message.copy(text = textWithNoMentions)) match {
 

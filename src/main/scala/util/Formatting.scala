@@ -11,4 +11,6 @@ trait Formatting {
 
   protected def formatUrl(input: String): String = input.replaceAll("[<>]", "")
 
+  protected def removeMentions(input: String): String = input.replaceAll("[@<>]", "")
+
 }
