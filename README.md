@@ -1,6 +1,16 @@
 # lunchbot
 For all your lunch (automation) needs!
 
+## Installation
+
+Set your bot API token at `SLACK_API_KEY` env, so: `export SLACK_API_KEY=my_bot_key`.
+
+## Usage
+
+Bot reacts to mentions, so if you set it up at @lunchbot handle:
+
+_(Copied output from the `help` command)_
+
 usage: <@lunchbot> `[command]` `[args...]`
 * `create` `<name or URL of the place>` - creates a new lunch at `<name or URL of the place>`
 * `cancel` - cancels current lunch
