@@ -37,6 +37,8 @@ package object commands {
 
   case class Poke(poker: UserId) extends Command
 
+  case class Kick(kicker: UserId, kicked: UserId) extends Command
+
   case class Join(eater: UserId) extends Command
 
   case class Leave(eater: UserId) extends Command
@@ -71,6 +73,14 @@ package object commands {
     override def name: String = "poke"
 
     override def description: String = "pokes all eaters that are lazy with their order"
+  }
+
+  object Kick extends OneArgCommand {
+    override def name: String = "kick"
+
+    override def description: String = s"kicks `<$argName>` from the current lunch"
+
+    override def argName: String = "eater to kick"
   }
 
   object Join extends NoArgCommand {
@@ -110,6 +120,7 @@ package object commands {
     Cancel,
     Summary,
     Poke,
+    Kick,
     Join,
     Leave,
     Choose,

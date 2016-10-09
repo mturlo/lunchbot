@@ -241,4 +241,50 @@ class LunchActorSpec
 
   }
 
+  it should "kick eaters" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectMsgType[HereMessage]
+
+    val eater1 = "some_eater"
+    val eater2 = "some_other_eater"
+
+    // eaters join the lunch
+
+    lunchActor ! Join(eater1)
+    lunchActor ! Join(eater2)
+
+    expectMsgType[MentionMessage]
+    expectMsgType[MentionMessage]
+
+    // lunchmaster kicks one eater
+
+    lunchActor ! Kick(lunchmaster, eater1)
+
+    expectMsgType[SimpleMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+    // kicks by other users have no effect
+
+    lunchActor ! Kick(eater1, eater2)
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+    // kicking the same user again has no effect
+
+    lunchActor ! Kick(lunchmaster, eater1)
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+  }
+
 }

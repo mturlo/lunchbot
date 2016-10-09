@@ -6,6 +6,7 @@ usage: <@lunchbot> `[command]` `[args...]`
 * `cancel` - cancels current lunch
 * `summary` - returns lunch summary
 * `poke` - pokes all eaters that are lazy with their order
+* `kick` `<eater to kick>` - kicks `<eater to kick>` from the current lunch
 * `join` - joins the current lunch
 * `leave` - leaves the current lunch
 * `choose` `<food name>` - chooses food with `<food name>`

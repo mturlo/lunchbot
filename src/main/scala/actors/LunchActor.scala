@@ -106,8 +106,26 @@ class LunchActor
       }
       stay
 
+    case Event(Kick(kicker, kicked), currentData@LunchData(lunchmaster, _, eaters)) =>
+      val slack = sender
+      if (kicker == lunchmaster) {
+        eaters.get(kicked) match {
+          case Some(eater) =>
+            sender ! SimpleMessage(s"Successfully kicked ${formatMention(kicked)} from the current lunch")
+            eater ! PoisonPill
+            stay using currentData.removeEater(kicked)
+          case None =>
+            slack ! SimpleMessage("But he hasn't even joined the lunch yet!")
+            stay
+        }
+      } else {
+        slack ! SimpleMessage("Only lunchmasters can kick eaters!")
+        stay
+      }
+
     case Event(summary@Summary(_), LunchData(_, _, eaters)) =>
       val slack = sender
+      logger.debug(s"Summary requested for current eaters: $eaters")
       fanIn[EaterReport](eaters.values.toSeq, summary)
         .map { reports =>
           val stateMessages = reports.groupBy(_.state) map {
