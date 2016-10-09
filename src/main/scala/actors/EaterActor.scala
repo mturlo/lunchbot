@@ -5,7 +5,8 @@ import actors.LunchActor.EaterReport
 import actors.LunchbotActor.MentionMessage
 import akka.actor.{FSM, Props}
 import commands.{Choose, Pay, Poke, Summary}
-import model.UserId
+import model.Statuses._
+import model.{Statuses, UserId}
 
 /**
   * Created by mactur on 02/10/2016.
@@ -17,11 +18,11 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
   when(Joined) {
 
     case Event(Choose(_, food), Empty) =>
-      sender ! MentionMessage(s"You've successfully selected: $food as your food", eaterId)
+      sender ! MentionMessage(s"You've successfully selected: $food as your food", eaterId, Success)
       goto(FoodChosen) using FoodData(food)
 
     case Event(Pay(payerId), Empty) =>
-      sender ! MentionMessage(s"Choose some food first!", payerId)
+      sender ! MentionMessage(s"Choose some food first!", payerId, Failure)
       stay
 
     case Event(Summary(_), Empty) =>
@@ -29,7 +30,7 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
       stay
 
     case Event(Poke(_), Empty) =>
-      sender ! MentionMessage(s"Hey, everybody's waiting for you! Choose some food already!", eaterId)
+      sender ! MentionMessage(s"Hey, everybody's waiting for you! Choose some food already!", eaterId, Failure)
       stay
 
   }
@@ -37,11 +38,11 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
   when(FoodChosen) {
 
     case Event(Choose(_, newFood), FoodData(currentFood)) =>
-      sender ! MentionMessage(s"You've changed your food selection from $currentFood to $newFood", eaterId)
+      sender ! MentionMessage(s"You've changed your food selection from $currentFood to $newFood", eaterId, Success)
       stay using FoodData(newFood)
 
     case Event(Pay(_), _) =>
-      sender ! MentionMessage(s"Thanks for paying!", eaterId)
+      sender ! MentionMessage(s"Thanks for paying!", eaterId, Success)
       goto(Paid)
 
     case Event(Summary(_), _) =>
@@ -53,11 +54,11 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
   when(Paid) {
 
     case Event(Choose(_, _), _) =>
-      sender ! MentionMessage(s"Too late for choosing - you've already paid!", eaterId)
+      sender ! MentionMessage(s"Too late for choosing - you've already paid!", eaterId, Failure)
       stay
 
     case Event(Pay(payerId), _) =>
-      sender ! MentionMessage(s"But you've already paid!", payerId)
+      sender ! MentionMessage(s"But you've already paid!", payerId, Failure)
       stay
 
     case Event(Summary(_), _) =>

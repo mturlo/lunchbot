@@ -1,11 +1,12 @@
 package actors
 
-import actors.LunchbotActor.{MessageBundle, OutboundMessage}
+import actors.LunchbotActor.{MentionMessage, MessageBundle, OutboundMessage}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
 import commands.{CommandParsing, CommandUsage, Help}
-import model.UserId
+import model.Statuses._
+import model.{Statuses, UserId}
 import slack.SlackUtil
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
@@ -31,7 +32,7 @@ class LunchbotActor(selfId: String)
 
   override def receive: Receive = {
 
-    case message: Message if SlackUtil.mentionsId(message.text, selfId) && message.user != selfId=>
+    case message: Message if SlackUtil.mentionsId(message.text, selfId) && message.user != selfId =>
 
       logger.debug(s"BOT IN: $message")
 
@@ -42,18 +43,18 @@ class LunchbotActor(selfId: String)
       parse(message.copy(text = textWithNoMentions)) match {
 
         case Some(Help(_)) =>
-          slack ! SendMessage(message.channel, renderUsage(selfId))
+          slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(command) =>
           (lunchActor ? command)
             .mapTo[OutboundMessage]
             .map(unbundle)
-            .map(_.map { out => SendMessage(message.channel, out.getText) })
+            .map(_.map { out => toSendMessage(message.channel, out) })
             .map(_.map { out => logger.debug(s"BOT OUT: $out"); out })
             .map(_.foreach(slack ! _))
 
         case None =>
-          slack ! SendMessage(message.channel, s"${formatMention(message.user)} I didn't quite get that...")
+          slack ! toSendMessage(message.channel, MentionMessage("I didn't quite get that...", message.user, Failure))
 
       }
 
@@ -66,6 +67,14 @@ class LunchbotActor(selfId: String)
     }
   }
 
+  private def toSendMessage(channel: String, outboundMessage: OutboundMessage): SendMessage = {
+    toSendMessage(channel, outboundMessage.getText, outboundMessage.status)
+  }
+
+  private def toSendMessage(channel: String, text: String, status: Status): SendMessage = {
+    SendMessage(channel, s"${statusIcon(status)} $text")
+  }
+
 }
 
 object LunchbotActor extends Formatting {
@@ -74,22 +83,26 @@ object LunchbotActor extends Formatting {
 
   sealed trait OutboundMessage {
     def getText: String
+
+    val status: Status
   }
 
-  case class HereMessage(text: String) extends OutboundMessage {
+  case class HereMessage(text: String, status: Status) extends OutboundMessage {
     override def getText: String = s"<!here> $text"
   }
 
-  case class MentionMessage(text: String, mentionedUser: UserId) extends OutboundMessage {
+  case class MentionMessage(text: String, mentionedUser: UserId, status: Status) extends OutboundMessage {
     override def getText: String = s"${formatMention(mentionedUser)} $text"
   }
 
-  case class SimpleMessage(text: String) extends OutboundMessage {
+  case class SimpleMessage(text: String, status: Status) extends OutboundMessage {
     override def getText: String = text
   }
 
   case class MessageBundle(messages: Seq[OutboundMessage]) extends OutboundMessage {
     override def getText: String = messages.map(_.getText).mkString("\n")
+
+    override val status: Status = Success
   }
 
 }
