@@ -3,7 +3,7 @@ package actors
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.{ActorRef, FSM, Props}
+import akka.actor.{ActorRef, FSM, PoisonPill, Props}
 import akka.pattern._
 import akka.util.Timeout
 import commands._
@@ -55,6 +55,17 @@ class LunchActor
         case None =>
           sender ! MentionMessage(s"Successfully joined the lunch at $place", eaterId)
           stay using currentData.withEater(eaterId, context.actorOf(EaterActor.props(eaterId)))
+      }
+
+    case Event(Leave(eaterId), currentData@LunchData(_, place, eaters)) =>
+      eaters.get(eaterId) match {
+        case Some(eater) =>
+          sender ! MentionMessage(s"Well, see you next time!", eaterId)
+          eater ! PoisonPill
+          stay using currentData.removeEater(eaterId)
+        case None =>
+          sender ! MentionMessage(s"You were not going to eat at $place anyway", eaterId)
+          stay using currentData
       }
 
     case Event(choose@Choose(eaterId, _), LunchData(_, _, eaters)) =>
@@ -151,9 +162,15 @@ object LunchActor {
   case object Empty extends Data
 
   case class LunchData(lunchmaster: UserId, place: String, eaters: Map[UserId, ActorRef]) extends Data {
+
     def withEater(eaterId: UserId, eaterActor: ActorRef): LunchData = {
       copy(eaters = eaters + (eaterId -> eaterActor))
     }
+
+    def removeEater(eaterId: UserId): LunchData = {
+      copy(eaters = eaters - eaterId)
+    }
+
   }
 
   case class EaterReport(eaterId: UserId, state: EaterActor.State, data: EaterActor.Data)

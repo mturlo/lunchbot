@@ -143,6 +143,53 @@ class LunchActorSpec
 
   }
 
+  it should "process eater leaves" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectMsgType[HereMessage]
+
+    val eater1 = "some_eater"
+    val eater2 = "some_other_eater"
+    val eater3 = "yet_another_eater"
+
+    // eaters join the lunch
+
+    lunchActor ! Join(eater1)
+    lunchActor ! Join(eater2)
+    lunchActor ! Join(eater3)
+
+    expectMsgType[MentionMessage]
+    expectMsgType[MentionMessage]
+    expectMsgType[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 3
+
+    // one eater leaves
+
+    lunchActor ! Leave(eater1)
+
+    expectMsgType[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
+
+    // further leaves for the eater have no effect
+
+    lunchActor ! Leave(eater1)
+
+    expectMsgType[MentionMessage]
+
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
+
+  }
+
   it should "poke eaters" in {
 
     val lunchActor = TestFSMRef(new LunchActor)
