@@ -31,6 +31,8 @@ package object commands {
 
   case class Create(lunchmaster: UserId, place: String) extends Command
 
+  case class Close(closer: UserId) extends Command
+
   case class Cancel(canceller: UserId) extends Command
 
   case class Summary(caller: UserId) extends Command
@@ -55,6 +57,12 @@ package object commands {
     override def description: String = s"creates a new lunch at `<$argName>`"
 
     override def argName: String = "name or URL of the place"
+  }
+
+  object Close extends NoArgCommand {
+    override def name: String = "close"
+
+    override def description: String = "closes current lunch for order changes"
   }
 
   object Cancel extends NoArgCommand {
@@ -117,6 +125,7 @@ package object commands {
 
   val allCommands = Seq(
     Create,
+    Close,
     Cancel,
     Summary,
     Poke,

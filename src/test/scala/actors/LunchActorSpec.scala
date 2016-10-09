@@ -1,10 +1,11 @@
 package actors
 
-import actors.LunchActor.{Empty, Idle, InProgress, LunchData}
+import actors.LunchActor._
 import actors.LunchbotActor._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
 import commands._
+import org.scalatest.concurrent.Eventually
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
 /**
@@ -15,6 +16,7 @@ class LunchActorSpec
     with ImplicitSender
     with FlatSpecLike
     with MustMatchers
+    with Eventually
     with MessageAssertions {
 
   it should "process lunch creation and cancellation" in {
@@ -289,6 +291,72 @@ class LunchActorSpec
     expectFailure[SimpleMessage]
 
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+  }
+
+  it should "close lunch order" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectSuccess[HereMessage]
+
+    val eater1 = "some_eater"
+    val eater2 = "some_other_eater"
+
+    // eaters join the lunch
+
+    lunchActor ! Join(eater1)
+    lunchActor ! Join(eater2)
+
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+
+    // closing while not lunchmaster fails
+
+    lunchActor ! Close(eater1)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateName mustBe InProgress
+
+    // trying to close lunch with unfinished orders fails
+
+    lunchActor ! Close(lunchmaster)
+
+    expectFailure[SimpleMessage]
+
+    eventually(lunchActor.stateName mustBe InProgress)
+
+    // eaters choose their food
+
+    lunchActor ! Choose(eater1, "food")
+    lunchActor ! Choose(eater2, "food")
+
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+
+    // now it's fine to close the lunch
+
+    lunchActor ! Close(lunchmaster)
+
+    expectSuccess[SimpleMessage]
+
+    eventually(lunchActor.stateName mustBe Closed)
+
+    // closing a closed lunch does nothing
+
+    lunchActor ! Close(lunchmaster)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateName mustBe Closed
 
   }
 
