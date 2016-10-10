@@ -33,6 +33,8 @@ package object commands {
 
   case class Close(closer: UserId) extends Command
 
+  case class Open(reopener: UserId) extends Command
+
   case class Cancel(canceller: UserId) extends Command
 
   case class Summary(caller: UserId) extends Command
@@ -63,6 +65,12 @@ package object commands {
     override def name: String = "close"
 
     override def description: String = "closes current lunch for order changes"
+  }
+
+  object Open extends NoArgCommand {
+    override def name: String = "open"
+
+    override def description: String = "opens current lunch for further order changes"
   }
 
   object Cancel extends NoArgCommand {
@@ -126,6 +134,7 @@ package object commands {
   val allCommands = Seq(
     Create,
     Close,
+    Open,
     Cancel,
     Summary,
     Poke,

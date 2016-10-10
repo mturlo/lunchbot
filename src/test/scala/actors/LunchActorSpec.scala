@@ -346,7 +346,7 @@ class LunchActorSpec
 
     lunchActor ! Close(lunchmaster)
 
-    expectSuccess[SimpleMessage]
+    expectSuccess[HereMessage]
 
     eventually(lunchActor.stateName mustBe Closed)
 
@@ -357,6 +357,54 @@ class LunchActorSpec
     expectFailure[SimpleMessage]
 
     lunchActor.stateName mustBe Closed
+
+  }
+
+  it should "open a closed lunch" in {
+
+    val lunchActor = TestFSMRef(new LunchActor)
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectSuccess[HereMessage]
+
+    // lunchmaster closes lunch
+
+    lunchActor ! Close(lunchmaster)
+
+    expectSuccess[HereMessage]
+
+    lunchActor.stateName mustBe Closed
+
+    // eater cannot reopen lunch
+    val eater1 = "some_eater"
+
+    lunchActor ! Open(eater1)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateName mustBe Closed
+
+    // lunchmaster reopens lunch
+
+    lunchActor ! Open(lunchmaster)
+
+    expectSuccess[SimpleMessage]
+
+    lunchActor.stateName mustBe InProgress
+
+    // second opening does nothing
+
+    lunchActor ! Open(lunchmaster)
+
+    expectFailure[SimpleMessage]
+
+    lunchActor.stateName mustBe InProgress
 
   }
 

@@ -58,6 +58,9 @@ class LunchActor
     case Event(command: Close, lunchData: LunchData) =>
       WhenInProgress.close(command, lunchData, sender)
 
+    case Event(command: Open, lunchData: LunchData) =>
+      WhenInProgress.open(command, lunchData, sender)
+
     case Event(command: Poke, lunchData: LunchData) =>
       WhenInProgress.poke(command, lunchData, sender)
 
@@ -79,6 +82,9 @@ class LunchActor
 
     case Event(command: Close, lunchData: LunchData) =>
       WhenClosed.close(command, lunchData, sender)
+
+    case Event(command: Open, lunchData: LunchData) =>
+      WhenClosed.open(command, lunchData, sender)
 
     case Event(command: Poke, lunchData: LunchData) =>
       WhenClosed.poke(command, lunchData, sender)

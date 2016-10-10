@@ -167,7 +167,7 @@ trait LunchActorBehaviours {
         }
         joinedOnly map {
           case Nil =>
-            sender ! SimpleMessage("Current lunch is now closed, can't join or change orders", Success)
+            sender ! HereMessage("Current lunch is now closed, can't join or change orders", Success)
             self ! Closed
           case _ =>
             sender ! SimpleMessage(s"Cannot close - some people didn't choose their food.", Failure)
@@ -176,6 +176,16 @@ trait LunchActorBehaviours {
         goto(WaitingForState) using data
       } else {
         sender ! SimpleMessage("Only lunchmasters can close lunches!", Failure)
+        stay
+      }
+    }
+
+    def open(command: Open, data: LunchData, sender: ActorRef): State = {
+      if (command.reopener == data.lunchmaster) {
+        sender ! SimpleMessage("This lunch is already open!", Failure)
+        stay
+      } else {
+        sender ! SimpleMessage("Only lunchmasters can reopen lunches!", Failure)
         stay
       }
     }
@@ -192,6 +202,16 @@ trait LunchActorBehaviours {
         stay
       } else {
         sender ! SimpleMessage("Only lunchmasters can close lunches!", Failure)
+        stay
+      }
+    }
+
+    override def open(command: Open, data: LunchData, sender: ActorRef): State = {
+      if (command.reopener == data.lunchmaster) {
+        sender ! SimpleMessage(s"Reopened lunch at ${formatUrl(data.place)}", Success)
+        goto(InProgress)
+      } else {
+        sender ! SimpleMessage("Only lunchmasters can reopen lunches!", Failure)
         stay
       }
     }
