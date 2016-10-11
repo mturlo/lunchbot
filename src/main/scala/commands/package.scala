@@ -5,7 +5,11 @@ import model.UserId
   */
 package object commands {
 
-  sealed trait Command
+  sealed trait Command {
+
+    val caller: UserId
+
+  }
 
   sealed trait CommandDescription {
 
@@ -29,27 +33,27 @@ package object commands {
 
   }
 
-  case class Create(lunchmaster: UserId, place: String) extends Command
+  case class Create(caller: UserId, place: String) extends Command
 
-  case class Close(closer: UserId) extends Command
+  case class Close(caller: UserId) extends Command
 
-  case class Open(reopener: UserId) extends Command
+  case class Open(caller: UserId) extends Command
 
-  case class Cancel(canceller: UserId) extends Command
+  case class Cancel(caller: UserId) extends Command
 
   case class Summary(caller: UserId) extends Command
 
-  case class Poke(poker: UserId) extends Command
+  case class Poke(caller: UserId) extends Command
 
-  case class Kick(kicker: UserId, kicked: UserId) extends Command
+  case class Kick(caller: UserId, kicked: UserId) extends Command
 
-  case class Join(eater: UserId) extends Command
+  case class Join(caller: UserId) extends Command
 
-  case class Leave(eater: UserId) extends Command
+  case class Leave(caller: UserId) extends Command
 
-  case class Choose(eater: UserId, food: String) extends Command
+  case class Choose(caller: UserId, food: String) extends Command
 
-  case class Pay(payer: UserId) extends Command
+  case class Pay(caller: UserId) extends Command
 
   case class Help(caller: UserId) extends Command
 

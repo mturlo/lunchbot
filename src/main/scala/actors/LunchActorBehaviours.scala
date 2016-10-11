@@ -28,8 +28,8 @@ trait LunchActorBehaviours {
 
     def create(command: Create, sender: ActorRef): State = {
       val formattedPlace = formatUrl(command.place)
-      sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(command.lunchmaster)} as Lunchmaster", Success)
-      goto(InProgress) using LunchData(command.lunchmaster, formattedPlace, Map.empty)
+      sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(command.caller)} as Lunchmaster", Success)
+      goto(InProgress) using LunchData(command.caller, formattedPlace, Map.empty)
     }
 
     def unhandled(sender: ActorRef): State = {
@@ -49,42 +49,33 @@ trait LunchActorBehaviours {
     }
 
     def cancel(command: Cancel, data: LunchData, sender: ActorRef): State = {
-      if (command.canceller == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         sender ! SimpleMessage("Cancelled current lunch process", Success)
         goto(Idle) using Empty
-      } else {
-        sender ! SimpleMessage("Only lunchmasters can cancel lunches!", Failure)
-        stay
       }
     }
 
     def poke(command: Poke, data: LunchData, sender: ActorRef): State = {
       val slack = sender
-      if (command.poker == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         fanIn[OutboundMessage](data.eaters.values.toSeq, command)
           .map(MessageBundle)
           .map(slack ! _)
-      } else {
-        slack ! SimpleMessage("Only lunchmasters can poke eaters!", Failure)
+        stay
       }
-      stay
     }
 
     def kick(command: Kick, data: LunchData, sender: ActorRef): State = {
-      val slack = sender
-      if (command.kicker == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         data.eaters.get(command.kicked) match {
           case Some(eater) =>
             sender ! SimpleMessage(s"Successfully kicked ${formatMention(command.kicked)} from the current lunch", Success)
             eater ! PoisonPill
             stay using data.removeEater(command.kicked)
           case None =>
-            slack ! SimpleMessage("But he hasn't even joined the lunch yet!", Failure)
+            sender ! SimpleMessage("But he hasn't even joined the lunch yet!", Failure)
             stay
         }
-      } else {
-        slack ! SimpleMessage("Only lunchmasters can kick eaters!", Failure)
-        stay
       }
     }
 
@@ -117,52 +108,52 @@ trait LunchActorBehaviours {
     }
 
     def join(command: Join, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.eater) match {
+      data.eaters.get(command.caller) match {
         case Some(_) =>
-          sender ! MentionMessage(s"You've already joined this lunch!", command.eater, Failure)
+          sender ! MentionMessage(s"You've already joined this lunch!", command.caller, Failure)
           stay using data
         case None =>
-          sender ! MentionMessage(s"Successfully joined the lunch at ${data.place}", command.eater, Success)
-          stay using data.withEater(command.eater, context.actorOf(EaterActor.props(command.eater)))
+          sender ! MentionMessage(s"Successfully joined the lunch at ${data.place}", command.caller, Success)
+          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller)))
       }
     }
 
     def leave(command: Leave, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.eater) match {
+      data.eaters.get(command.caller) match {
         case Some(eater) =>
-          sender ! MentionMessage(s"Well, see you next time!", command.eater, Success)
+          sender ! MentionMessage(s"Well, see you next time!", command.caller, Success)
           eater ! PoisonPill
-          stay using data.removeEater(command.eater)
+          stay using data.removeEater(command.caller)
         case None =>
-          sender ! MentionMessage(s"You were not going to eat at ${data.place} anyway", command.eater, Failure)
+          sender ! MentionMessage(s"You were not going to eat at ${data.place} anyway", command.caller, Failure)
           stay using data
       }
     }
 
     def choose(command: Choose, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.eater) match {
+      data.eaters.get(command.caller) match {
         case Some(eaterActor) =>
           (eaterActor ? command).pipeTo(sender)
         case None =>
-          sender ! MentionMessage(s"You have to join this lunch first!", command.eater, Failure)
+          sender ! MentionMessage(s"You have to join this lunch first!", command.caller, Failure)
       }
       stay
     }
 
     def pay(command: Pay, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.payer) match {
+      data.eaters.get(command.caller) match {
         case Some(eaterActor) =>
           (eaterActor ? command).pipeTo(sender)
         case None =>
-          MentionMessage(s"You have to join this lunch first!", command.payer, Failure)
+          MentionMessage(s"You have to join this lunch first!", command.caller, Failure)
       }
       stay
     }
 
     def close(command: Close, data: LunchData, sender: ActorRef): State = {
-      if (command.closer == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         val currentState = stateName
-        val joinedOnly = fanIn[EaterReport](data.eaters.values.toSeq, Summary(command.closer)) map { reports =>
+        val joinedOnly = fanIn[EaterReport](data.eaters.values.toSeq, Summary(command.caller)) map { reports =>
           reports.filter(_.state == EaterActor.Joined)
         }
         joinedOnly map {
@@ -174,18 +165,12 @@ trait LunchActorBehaviours {
             self ! currentState
         }
         goto(WaitingForState) using data
-      } else {
-        sender ! SimpleMessage("Only lunchmasters can close lunches!", Failure)
-        stay
       }
     }
 
     def open(command: Open, data: LunchData, sender: ActorRef): State = {
-      if (command.reopener == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         sender ! SimpleMessage("This lunch is already open!", Failure)
-        stay
-      } else {
-        sender ! SimpleMessage("Only lunchmasters can reopen lunches!", Failure)
         stay
       }
     }
@@ -197,22 +182,16 @@ trait LunchActorBehaviours {
   trait WhenClosed extends WhenInProgress {
 
     override def close(command: Close, data: LunchData, sender: ActorRef): State = {
-      if (command.closer == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         sender ! SimpleMessage("This lunch is already closed", Failure)
-        stay
-      } else {
-        sender ! SimpleMessage("Only lunchmasters can close lunches!", Failure)
         stay
       }
     }
 
     override def open(command: Open, data: LunchData, sender: ActorRef): State = {
-      if (command.reopener == data.lunchmaster) {
+      lunchmasterOnly(command, data) {
         sender ! SimpleMessage(s"Reopened lunch at ${formatUrl(data.place)}", Success)
         goto(InProgress)
-      } else {
-        sender ! SimpleMessage("Only lunchmasters can reopen lunches!", Failure)
-        stay
       }
     }
 
@@ -235,6 +214,15 @@ trait LunchActorBehaviours {
             .recover(PartialFunction(_ => None))
         )
     ).map(_.flatten)
+  }
+
+  private def lunchmasterOnly(command: Command, data: LunchData)(authorised: => State): State = {
+    if (command.caller == data.lunchmaster) {
+      authorised
+    } else {
+      sender ! SimpleMessage("Only lunchmasters can do that!", Failure)
+      stay
+    }
   }
 
 }
