@@ -43,8 +43,8 @@ trait LunchActorBehaviours {
 
   trait WhenInProgress {
 
-    def create(command: Create, sender: ActorRef): State = {
-      sender ! SimpleMessage(s"There is already a running lunch process at: $command.place with ${formatMention(command.lunchmaster)} as Lunchmaster", Failure)
+    def create(command: Create, data: LunchData, sender: ActorRef): State = {
+      sender ! SimpleMessage(s"There is already a running lunch process at: ${command.place} with ${formatMention(data.lunchmaster)} as Lunchmaster", Failure)
       stay
     }
 

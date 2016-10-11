@@ -37,8 +37,8 @@ class LunchActor
 
   when(InProgress) {
 
-    case Event(command: Create, _) =>
-      WhenInProgress.create(command, sender)
+    case Event(command: Create, lunchData: LunchData) =>
+      WhenInProgress.create(command, lunchData, sender)
 
     case Event(command: Join, lunchData: LunchData) =>
       WhenInProgress.join(command, lunchData, sender)
@@ -74,8 +74,8 @@ class LunchActor
 
   when(Closed) {
 
-    case Event(command: Create, _) =>
-      WhenClosed.create(command, sender)
+    case Event(command: Create, lunchData: LunchData) =>
+      WhenClosed.create(command, lunchData, sender)
 
     case Event(command: Cancel, lunchData: LunchData) =>
       WhenClosed.cancel(command, lunchData, sender)
