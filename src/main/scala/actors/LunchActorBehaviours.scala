@@ -81,6 +81,7 @@ trait LunchActorBehaviours {
 
     def summary(command: Summary, data: LunchData, sender: ActorRef): State = {
       val slack = sender
+      val headerMessage = s"Current lunch is at ${data.place} with ${formatMention(data.lunchmaster)} as Lunchmaster"
       fanIn[EaterReport](data.eaters.values.toSeq, command)
         .map { reports =>
           val stateMessages = reports.groupBy(_.state) map {
@@ -101,7 +102,7 @@ trait LunchActorBehaviours {
               val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
               s"The current order is:\n${foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")}"
           }
-          val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
+          val summaryMessage = (headerMessage +: stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
           slack ! SimpleMessage(summaryMessage, Success)
         }
       stay
