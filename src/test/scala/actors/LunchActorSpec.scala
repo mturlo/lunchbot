@@ -242,6 +242,44 @@ class LunchActorSpec
       case MessageBundle(messages) => messages must have size 2
     }
 
+    // other pokers choose food
+
+    lunchActor ! Choose(eater2, "some food")
+    lunchActor ! Choose(eater3, "some food")
+
+    expectSuccess[MentionMessage]
+    expectSuccess[MentionMessage]
+
+    // lunchmaster closes the order
+
+    lunchActor ! Close(lunchmaster)
+
+    expectSuccess[HereMessage]
+
+    eventually(lunchActor.stateName mustBe Closed)
+
+    // lunchmaster pokes eaters for payment
+
+    lunchActor ! Poke(lunchmaster)
+
+    expectMsgPF() {
+      case MessageBundle(messages) => messages must have size 3
+    }
+
+    // one eater pays
+
+    lunchActor ! Pay(eater1)
+
+    expectSuccess[MentionMessage]
+
+    // lunchmaster pokes the other two
+
+    lunchActor ! Poke(lunchmaster)
+
+    expectMsgPF() {
+      case MessageBundle(messages) => messages must have size 2
+    }
+
   }
 
   it should "kick eaters" in {

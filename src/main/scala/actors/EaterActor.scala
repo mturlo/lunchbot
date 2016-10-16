@@ -6,7 +6,7 @@ import actors.LunchbotActor.MentionMessage
 import akka.actor.{FSM, Props}
 import commands.{Choose, Pay, Poke, Summary}
 import model.Statuses._
-import model.{Statuses, UserId}
+import model.UserId
 
 /**
   * Created by mactur on 02/10/2016.
@@ -47,6 +47,10 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
 
     case Event(Summary(_), _) =>
       sender ! EaterReport(eaterId, stateName, stateData)
+      stay
+
+    case Event(Poke.Pay(_), _) =>
+      sender ! MentionMessage(s"Where's my money, man?!", eaterId, Failure)
       stay
 
   }

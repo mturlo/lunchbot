@@ -115,7 +115,7 @@ trait LunchActorBehaviours {
           stay using data
         case None =>
           sender ! MentionMessage(s"Successfully joined the lunch at ${data.place}", command.caller, Success)
-          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller)))
+          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller), command.caller))
       }
     }
 
@@ -193,6 +193,16 @@ trait LunchActorBehaviours {
       lunchmasterOnly(command, data) {
         sender ! SimpleMessage(s"Reopened lunch at ${formatUrl(data.place)}", Success)
         goto(InProgress)
+      }
+    }
+
+    override def poke(command: Poke, data: LunchData, sender: ActorRef): State = {
+      val slack = sender
+      lunchmasterOnly(command, data) {
+        fanIn[OutboundMessage](data.eaters.values.toSeq, Poke.Pay(command.caller))
+          .map(MessageBundle)
+          .map(slack ! _)
+        stay
       }
     }
 

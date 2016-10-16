@@ -28,7 +28,7 @@ class LunchbotActor(selfId: String)
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
 
-  val lunchActor: ActorRef = context.actorOf(LunchActor.props)
+  val lunchActor: ActorRef = context.actorOf(LunchActor.props, "lunch")
 
   override def receive: Receive = {
 

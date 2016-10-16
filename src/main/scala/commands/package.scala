@@ -93,6 +93,9 @@ package object commands {
     override def name: String = "poke"
 
     override def description: String = "pokes all eaters that are lazy with their order"
+
+    case class Pay(caller: UserId) extends Command
+
   }
 
   object Kick extends OneArgCommand {
