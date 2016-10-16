@@ -19,7 +19,7 @@ class LunchActorSpec
     with Eventually
     with MessageAssertions {
 
-  it should "process lunch creation and cancellation" in {
+  it should "process lunch creation and finishing" in {
 
     val lunchActor = TestFSMRef(new LunchActor)
 
@@ -47,18 +47,18 @@ class LunchActorSpec
 
     expectFailure[SimpleMessage]
 
-    // cancelling the lunch
+    // finishing the lunch
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
 
     expectSuccess[SimpleMessage]
 
-    // second cancel should have no effect
+    // second finish should have no effect
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -77,9 +77,9 @@ class LunchActorSpec
 
     expectSuccess[HereMessage]
 
-    // only the current lunchmaster can cancel the lunch
+    // only the current lunchmaster can finish the lunch
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
@@ -231,6 +231,44 @@ class LunchActorSpec
     // one eater chooses food
 
     lunchActor ! Choose(eater1, "some food")
+
+    expectSuccess[ReactionMessage]
+
+    // lunchmaster pokes the other two
+
+    lunchActor ! Poke(lunchmaster)
+
+    expectMsgPF() {
+      case MessageBundle(messages) => messages must have size 2
+    }
+
+    // other pokers choose food
+
+    lunchActor ! Choose(eater2, "some food")
+    lunchActor ! Choose(eater3, "some food")
+
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
+
+    // lunchmaster closes the order
+
+    lunchActor ! Close(lunchmaster)
+
+    expectSuccess[HereMessage]
+
+    eventually(lunchActor.stateName mustBe Closed)
+
+    // lunchmaster pokes eaters for payment
+
+    lunchActor ! Poke(lunchmaster)
+
+    expectMsgPF() {
+      case MessageBundle(messages) => messages must have size 3
+    }
+
+    // one eater pays
+
+    lunchActor ! Pay(eater1)
 
     expectSuccess[ReactionMessage]
 

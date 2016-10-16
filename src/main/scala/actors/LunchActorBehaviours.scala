@@ -48,9 +48,9 @@ trait LunchActorBehaviours {
       stay
     }
 
-    def cancel(command: Cancel, data: LunchData, sender: ActorRef): State = {
+    def finish(command: Finish, data: LunchData, sender: ActorRef): State = {
       lunchmasterOnly(command, data) {
-        sender ! SimpleMessage("Cancelled current lunch process", Success)
+        sender ! SimpleMessage("Finished current lunch process", Success)
         goto(Idle) using Empty
       }
     }
@@ -81,6 +81,7 @@ trait LunchActorBehaviours {
 
     def summary(command: Summary, data: LunchData, sender: ActorRef): State = {
       val slack = sender
+      val headerMessage = s"Current lunch is at ${data.place} with ${formatMention(data.lunchmaster)} as Lunchmaster"
       fanIn[EaterReport](data.eaters.values.toSeq, command)
         .map { reports =>
           val stateMessages = reports.groupBy(_.state) map {
@@ -101,7 +102,7 @@ trait LunchActorBehaviours {
               val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
               s"The current order is:\n${foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")}"
           }
-          val summaryMessage = (stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
+          val summaryMessage = (headerMessage +: stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
           slack ! SimpleMessage(summaryMessage, Success)
         }
       stay
@@ -114,7 +115,7 @@ trait LunchActorBehaviours {
           stay using data
         case None =>
           sender ! ReactionMessage(Success)
-          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller)))
+          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller), command.caller))
       }
     }
 
@@ -192,6 +193,16 @@ trait LunchActorBehaviours {
       lunchmasterOnly(command, data) {
         sender ! SimpleMessage(s"Reopened lunch at ${formatUrl(data.place)}", Success)
         goto(InProgress)
+      }
+    }
+
+    override def poke(command: Poke, data: LunchData, sender: ActorRef): State = {
+      val slack = sender
+      lunchmasterOnly(command, data) {
+        fanIn[OutboundMessage](data.eaters.values.toSeq, Poke.Pay(command.caller))
+          .map(MessageBundle)
+          .map(slack ! _)
+        stay
       }
     }
 

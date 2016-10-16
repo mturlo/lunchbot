@@ -49,6 +49,10 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
       sender ! EaterReport(eaterId, stateName, stateData)
       stay
 
+    case Event(Poke.Pay(_), _) =>
+      sender ! MentionMessage(s"Where's my money, man?!", eaterId, Failure)
+      stay
+
   }
 
   when(Paid) {
