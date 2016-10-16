@@ -39,7 +39,7 @@ package object commands {
 
   case class Open(caller: UserId) extends Command
 
-  case class Cancel(caller: UserId) extends Command
+  case class Finish(caller: UserId) extends Command
 
   case class Summary(caller: UserId) extends Command
 
@@ -77,10 +77,10 @@ package object commands {
     override def description: String = "opens current lunch for further order changes"
   }
 
-  object Cancel extends NoArgCommand {
-    override def name: String = "cancel"
+  object Finish extends NoArgCommand {
+    override def name: String = "finish"
 
-    override def description: String = "cancels current lunch"
+    override def description: String = "finishes current lunch"
   }
 
   object Summary extends NoArgCommand {
@@ -142,7 +142,7 @@ package object commands {
     Create,
     Close,
     Open,
-    Cancel,
+    Finish,
     Summary,
     Poke,
     Kick,

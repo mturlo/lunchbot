@@ -19,7 +19,7 @@ class LunchActorSpec
     with Eventually
     with MessageAssertions {
 
-  it should "process lunch creation and cancellation" in {
+  it should "process lunch creation and finishing" in {
 
     val lunchActor = TestFSMRef(new LunchActor)
 
@@ -47,18 +47,18 @@ class LunchActorSpec
 
     expectFailure[SimpleMessage]
 
-    // cancelling the lunch
+    // finishing the lunch
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
 
     expectSuccess[SimpleMessage]
 
-    // second cancel should have no effect
+    // second finish should have no effect
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -77,9 +77,9 @@ class LunchActorSpec
 
     expectSuccess[HereMessage]
 
-    // only the current lunchmaster can cancel the lunch
+    // only the current lunchmaster can finish the lunch
 
-    lunchActor ! Cancel(lunchmaster1)
+    lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)

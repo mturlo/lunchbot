@@ -48,9 +48,9 @@ trait LunchActorBehaviours {
       stay
     }
 
-    def cancel(command: Cancel, data: LunchData, sender: ActorRef): State = {
+    def finish(command: Finish, data: LunchData, sender: ActorRef): State = {
       lunchmasterOnly(command, data) {
-        sender ! SimpleMessage("Cancelled current lunch process", Success)
+        sender ! SimpleMessage("Finished current lunch process", Success)
         goto(Idle) using Empty
       }
     }

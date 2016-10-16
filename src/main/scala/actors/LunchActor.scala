@@ -52,8 +52,8 @@ class LunchActor
     case Event(command: Pay, lunchData: LunchData) =>
       WhenInProgress.pay(command, lunchData, sender)
 
-    case Event(command: Cancel, lunchData: LunchData) =>
-      WhenInProgress.cancel(command, lunchData, sender)
+    case Event(command: Finish, lunchData: LunchData) =>
+      WhenInProgress.finish(command, lunchData, sender)
 
     case Event(command: Close, lunchData: LunchData) =>
       WhenInProgress.close(command, lunchData, sender)
@@ -77,8 +77,8 @@ class LunchActor
     case Event(command: Create, lunchData: LunchData) =>
       WhenClosed.create(command, lunchData, sender)
 
-    case Event(command: Cancel, lunchData: LunchData) =>
-      WhenClosed.cancel(command, lunchData, sender)
+    case Event(command: Finish, lunchData: LunchData) =>
+      WhenClosed.finish(command, lunchData, sender)
 
     case Event(command: Close, lunchData: LunchData) =>
       WhenClosed.close(command, lunchData, sender)

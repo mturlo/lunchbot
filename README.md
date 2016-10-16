@@ -15,7 +15,7 @@ usage: <@lunchbot> `[command]` `[args...]`
 * `create` `<name or URL of the place>` - creates a new lunch at `<name or URL of the place>`
 * `close` - closes current lunch for order changes
 * `open` - opens current lunch for further order changes
-* `cancel` - cancels current lunch
+* `finish` - finishes current lunch
 * `summary` - returns lunch summary
 * `poke` - pokes all eaters that are lazy with their order
 * `kick` `<eater to kick>` - kicks `<eater to kick>` from the current lunch
