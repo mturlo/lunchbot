@@ -113,7 +113,7 @@ trait LunchActorBehaviours {
           sender ! MentionMessage(s"You've already joined this lunch!", command.caller, Failure)
           stay using data
         case None =>
-          sender ! MentionMessage(s"Successfully joined the lunch at ${data.place}", command.caller, Success)
+          sender ! ReactionMessage(Success)
           stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller)))
       }
     }
@@ -121,7 +121,7 @@ trait LunchActorBehaviours {
     def leave(command: Leave, data: LunchData, sender: ActorRef): State = {
       data.eaters.get(command.caller) match {
         case Some(eater) =>
-          sender ! MentionMessage(s"Well, see you next time!", command.caller, Success)
+          sender ! ReactionMessage(Success)
           eater ! PoisonPill
           stay using data.removeEater(command.caller)
         case None =>

@@ -2,11 +2,11 @@ package actors
 
 import actors.EaterActor._
 import actors.LunchActor.EaterReport
-import actors.LunchbotActor.MentionMessage
+import actors.LunchbotActor.{MentionMessage, ReactionMessage}
 import akka.actor.{FSM, Props}
 import commands.{Choose, Pay, Poke, Summary}
 import model.Statuses._
-import model.{Statuses, UserId}
+import model.UserId
 
 /**
   * Created by mactur on 02/10/2016.
@@ -18,7 +18,7 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
   when(Joined) {
 
     case Event(Choose(_, food), Empty) =>
-      sender ! MentionMessage(s"You've successfully selected: $food as your food", eaterId, Success)
+      sender ! ReactionMessage(Success)
       goto(FoodChosen) using FoodData(food)
 
     case Event(Pay(payerId), Empty) =>
@@ -37,12 +37,12 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
 
   when(FoodChosen) {
 
-    case Event(Choose(_, newFood), FoodData(currentFood)) =>
-      sender ! MentionMessage(s"You've changed your food selection from $currentFood to $newFood", eaterId, Success)
+    case Event(Choose(_, newFood), _) =>
+      sender ! ReactionMessage(Success)
       stay using FoodData(newFood)
 
     case Event(Pay(_), _) =>
-      sender ! MentionMessage(s"Thanks for paying!", eaterId, Success)
+      sender ! ReactionMessage(Success)
       goto(Paid)
 
     case Event(Summary(_), _) =>

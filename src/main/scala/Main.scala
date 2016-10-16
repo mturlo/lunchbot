@@ -20,7 +20,7 @@ object Main extends App {
 
   val selfId: String = client.state.self.id
 
-  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId), "lunchbot")
+  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId, client.apiClient), "lunchbot")
 
   client.addEventListener(lunchbotActor)
 

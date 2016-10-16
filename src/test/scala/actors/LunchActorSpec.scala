@@ -119,7 +119,7 @@ class LunchActorSpec
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     // second join should have no effect
 
@@ -142,7 +142,7 @@ class LunchActorSpec
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
     lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater2
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
   }
 
@@ -169,9 +169,9 @@ class LunchActorSpec
     lunchActor ! Join(eater2)
     lunchActor ! Join(eater3)
 
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
 
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 3
 
@@ -179,7 +179,7 @@ class LunchActorSpec
 
     lunchActor ! Leave(eater1)
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
 
@@ -216,9 +216,9 @@ class LunchActorSpec
     lunchActor ! Join(eater2)
     lunchActor ! Join(eater3)
 
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
 
     // lunchmaster pokes them
 
@@ -232,7 +232,7 @@ class LunchActorSpec
 
     lunchActor ! Choose(eater1, "some food")
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     // lunchmaster pokes the other two
 
@@ -265,8 +265,8 @@ class LunchActorSpec
     lunchActor ! Join(eater1)
     lunchActor ! Join(eater2)
 
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
 
     // lunchmaster kicks one eater
 
@@ -315,8 +315,8 @@ class LunchActorSpec
     lunchActor ! Join(eater1)
     lunchActor ! Join(eater2)
 
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
 
     // closing while not lunchmaster fails
 
@@ -339,8 +339,8 @@ class LunchActorSpec
     lunchActor ! Choose(eater1, "food")
     lunchActor ! Choose(eater2, "food")
 
-    expectSuccess[MentionMessage]
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
+    expectSuccess[ReactionMessage]
 
     // now it's fine to close the lunch
 

@@ -1,7 +1,7 @@
 package actors
 
 import actors.EaterActor._
-import actors.LunchbotActor.MentionMessage
+import actors.LunchbotActor.{MentionMessage, ReactionMessage}
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
 import commands.{Choose, Pay}
@@ -33,7 +33,7 @@ class EaterActorSpec
 
     eaterActor ! Choose(eater, food1)
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     eaterActor.stateName mustBe FoodChosen
     eaterActor.stateData mustBe FoodData(food1)
@@ -42,7 +42,7 @@ class EaterActorSpec
 
     eaterActor ! Choose(eater, food2)
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     eaterActor.stateName mustBe FoodChosen
     eaterActor.stateData mustBe FoodData(food2)
@@ -73,7 +73,7 @@ class EaterActorSpec
 
     eaterActor ! Choose(eater, food)
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     eaterActor.stateName mustBe FoodChosen
     eaterActor.stateData mustBe FoodData(food)
@@ -82,7 +82,7 @@ class EaterActorSpec
 
     eaterActor ! Pay(eater)
 
-    expectSuccess[MentionMessage]
+    expectSuccess[ReactionMessage]
 
     eaterActor.stateName mustBe Paid
     eaterActor.stateData mustBe FoodData(food)
@@ -96,7 +96,7 @@ class EaterActorSpec
     eaterActor.stateName mustBe Paid
     eaterActor.stateData mustBe FoodData(food)
 
-    // choosing after payment shoud have no effect
+    // choosing after payment should have no effect
 
     eaterActor ! Choose(eater, food)
 
