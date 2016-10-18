@@ -50,6 +50,7 @@ trait LunchActorBehaviours {
 
     def finish(command: Finish, data: LunchData, sender: ActorRef): State = {
       lunchmasterOnly(command, data) {
+        data.eaters.values foreach (_ ! PoisonPill)
         sender ! SimpleMessage("Finished current lunch process", Success)
         goto(Idle) using Empty
       }
