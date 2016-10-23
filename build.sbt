@@ -1,6 +1,6 @@
 name := "lunchbot"
 
-version := "0.3.0"
+version := "0.4.0"
 
 scalaVersion := "2.11.8"
 
@@ -11,6 +11,7 @@ libraryDependencies ++= {
     val akka = "2.4.4"
 
     val scalatest = "3.0.0"
+    val mockito = "2.2.3"
   }
 
   Seq(
@@ -18,7 +19,8 @@ libraryDependencies ++= {
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
-      "com.typesafe.akka" %% "akka-testkit" % Versions.akka % "test"
+      "com.typesafe.akka" %% "akka-testkit" % Versions.akka % "test",
+      "org.mockito" % "mockito-core" % Versions.mockito % "test"
     )
 
 }

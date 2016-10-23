@@ -4,7 +4,9 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import model.UserId
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpecLike, MustMatchers}
+import slack.api.BlockingSlackApiClient
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.Formatting
@@ -18,6 +20,7 @@ class LunchbotActorSpec
     with MustMatchers
     with ImplicitSender
     with ScalaFutures
+    with MockitoSugar
     with Formatting {
 
   val testUser = "test_user"
@@ -29,7 +32,9 @@ class LunchbotActorSpec
 
   it should "only react when mentioned" in {
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId))
+    val mockSlackApi = mock[BlockingSlackApiClient]
+
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi))
 
     val messageWithMention = getMessage(s"<@$selfId> hey there!")
 
@@ -47,7 +52,9 @@ class LunchbotActorSpec
 
   it should "not react to own mentions" in {
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId))
+    val mockSlackApi = mock[BlockingSlackApiClient]
+
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi))
 
     val messageWithMention = getMessage(s"<@$selfId> hey there!", selfId)
 

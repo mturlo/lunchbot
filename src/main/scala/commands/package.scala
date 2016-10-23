@@ -5,7 +5,11 @@ import model.UserId
   */
 package object commands {
 
-  sealed trait Command
+  sealed trait Command {
+
+    val caller: UserId
+
+  }
 
   sealed trait CommandDescription {
 
@@ -29,23 +33,27 @@ package object commands {
 
   }
 
-  case class Create(lunchmaster: UserId, place: String) extends Command
+  case class Create(caller: UserId, place: String) extends Command
 
-  case class Cancel(canceller: UserId) extends Command
+  case class Close(caller: UserId) extends Command
+
+  case class Open(caller: UserId) extends Command
+
+  case class Finish(caller: UserId) extends Command
 
   case class Summary(caller: UserId) extends Command
 
-  case class Poke(poker: UserId) extends Command
+  case class Poke(caller: UserId) extends Command
 
-  case class Kick(kicker: UserId, kicked: UserId) extends Command
+  case class Kick(caller: UserId, kicked: UserId) extends Command
 
-  case class Join(eater: UserId) extends Command
+  case class Join(caller: UserId) extends Command
 
-  case class Leave(eater: UserId) extends Command
+  case class Leave(caller: UserId) extends Command
 
-  case class Choose(eater: UserId, food: String) extends Command
+  case class Choose(caller: UserId, food: String) extends Command
 
-  case class Pay(payer: UserId) extends Command
+  case class Pay(caller: UserId) extends Command
 
   case class Help(caller: UserId) extends Command
 
@@ -57,10 +65,22 @@ package object commands {
     override def argName: String = "name or URL of the place"
   }
 
-  object Cancel extends NoArgCommand {
-    override def name: String = "cancel"
+  object Close extends NoArgCommand {
+    override def name: String = "close"
 
-    override def description: String = "cancels current lunch"
+    override def description: String = "closes current lunch for order changes"
+  }
+
+  object Open extends NoArgCommand {
+    override def name: String = "open"
+
+    override def description: String = "opens current lunch for further order changes"
+  }
+
+  object Finish extends NoArgCommand {
+    override def name: String = "finish"
+
+    override def description: String = "finishes current lunch"
   }
 
   object Summary extends NoArgCommand {
@@ -73,6 +93,9 @@ package object commands {
     override def name: String = "poke"
 
     override def description: String = "pokes all eaters that are lazy with their order"
+
+    case class Pay(caller: UserId) extends Command
+
   }
 
   object Kick extends OneArgCommand {
@@ -117,7 +140,9 @@ package object commands {
 
   val allCommands = Seq(
     Create,
-    Cancel,
+    Close,
+    Open,
+    Finish,
     Summary,
     Poke,
     Kick,
