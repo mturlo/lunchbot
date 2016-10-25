@@ -2,6 +2,7 @@ package actors
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import com.typesafe.config.{Config, ConfigFactory}
 import model.UserId
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mockito.MockitoSugar
@@ -26,6 +27,8 @@ class LunchbotActorSpec
   val testUser = "test_user"
   val selfId = "some_self_id"
 
+  val config: Config = ConfigFactory.load()
+
   private def getMessage(text: String, userId: UserId = testUser): Message = {
     Message("", "", userId, text, None)
   }
@@ -34,7 +37,7 @@ class LunchbotActorSpec
 
     val mockSlackApi = mock[BlockingSlackApiClient]
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi, config))
 
     val messageWithMention = getMessage(s"<@$selfId> hey there!")
 
@@ -54,7 +57,7 @@ class LunchbotActorSpec
 
     val mockSlackApi = mock[BlockingSlackApiClient]
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi, config))
 
     val messageWithMention = getMessage(s"<@$selfId> hey there!", selfId)
 

@@ -1,5 +1,6 @@
 import actors.LunchbotActor
 import akka.actor.{ActorRef, ActorSystem}
+import com.typesafe.config.{Config, ConfigFactory}
 import slack.rtm.SlackRtmClient
 
 import scala.concurrent.Await
@@ -20,7 +21,9 @@ object Main extends App {
 
   val selfId: String = client.state.self.id
 
-  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId, client.apiClient), "lunchbot")
+  val config: Config = ConfigFactory.load()
+
+  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId, client.apiClient, config), "lunchbot")
 
   client.addEventListener(lunchbotActor)
 

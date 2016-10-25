@@ -1,9 +1,10 @@
 package actors
 
-import actors.LunchbotActor.{MentionMessage, MessageBundle, OutboundMessage, ReactionMessage}
+import actors.LunchbotActor.{SimpleMessage, MessageBundle, OutboundMessage, ReactionMessage}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
+import com.typesafe.config.Config
 import commands.{CommandParsing, CommandUsage, Help}
 import model.Statuses._
 import model.UserId
@@ -12,14 +13,16 @@ import slack.api.BlockingSlackApiClient
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.{Formatting, Logging}
+import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.util.Random
 
 /**
   * Created by mactur on 29/09/2016.
   */
-class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
+class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient, config: Config)
   extends Actor
     with Logging
     with Formatting
@@ -30,6 +33,8 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
   implicit val executionContext: ExecutionContext = context.dispatcher
 
   val lunchActor: ActorRef = context.actorOf(LunchActor.props, "lunch")
+
+  val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
 
   override def receive: Receive = {
 
@@ -62,7 +67,8 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
             }
 
         case None =>
-          slack ! toSendMessage(message.channel, MentionMessage("I didn't quite get that...", message.user, Failure))
+          val text = Random.shuffle(unrecognisedMsgs).head
+          slack ! toSendMessage(message.channel, SimpleMessage(text, Failure))
 
       }
 
@@ -91,7 +97,11 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
 
 object LunchbotActor extends Formatting {
 
-  def props(selfId: String, slackApiClient: BlockingSlackApiClient): Props = Props(new LunchbotActor(selfId, slackApiClient))
+  def props(selfId: String,
+            slackApiClient: BlockingSlackApiClient,
+            config: Config): Props = {
+    Props(new LunchbotActor(selfId, slackApiClient, config))
+  }
 
   sealed trait OutboundMessage {
     def getText: String
