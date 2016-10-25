@@ -4,18 +4,22 @@ version := "0.4.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
+resolvers += Resolver.jcenterRepo
+
 libraryDependencies ++= {
 
   object Versions {
     val slackScalaClient = "0.1.8"
     val akka = "2.4.4"
+    val ficus = "1.2.3"
 
     val scalatest = "3.0.0"
     val mockito = "2.2.3"
   }
 
   Seq(
-    "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient
+    "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
+    "com.iheart" %% "ficus" % Versions.ficus
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
