@@ -67,7 +67,8 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient, conf
             }
 
         case None =>
-          val text = Random.shuffle(unrecognisedMsgs).head
+          val index = Math.abs(message.text.hashCode + message.user.hashCode) % unrecognisedMsgs.size
+          val text = unrecognisedMsgs(index)
           slack ! toSendMessage(message.channel, SimpleMessage(text, Failure))
 
       }
