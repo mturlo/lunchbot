@@ -1,13 +1,14 @@
 package actors
 
-import actors.LunchbotActor.{SimpleMessage, MessageBundle, OutboundMessage, ReactionMessage}
+import actors.LunchbotActor.{MessageBundle, OutboundMessage, ReactionMessage, SimpleMessage}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
 import com.typesafe.config.Config
-import commands.{CommandParsing, CommandUsage, Help}
+import commands.{CommandParsing, CommandUsage, Help, Stats}
 import model.Statuses._
 import model.UserId
+import modules.{SlackApi, Statistics}
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
@@ -17,17 +18,20 @@ import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.util.Random
 
 /**
   * Created by mactur on 29/09/2016.
   */
-class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient, config: Config)
+class LunchbotActor(selfId: String,
+                    override val slackApiClient: BlockingSlackApiClient,
+                    config: Config)
   extends Actor
     with Logging
     with Formatting
     with CommandParsing
-    with CommandUsage {
+    with CommandUsage
+    with SlackApi
+    with Statistics {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -35,6 +39,8 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient, conf
   val lunchActor: ActorRef = context.actorOf(LunchActor.props, "lunch")
 
   val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
+
+  val statsMaxDays: Option[Int] = config.getAs[Int]("statistics.maxDays")
 
   override def receive: Receive = {
 
@@ -50,6 +56,16 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient, conf
 
         case Some(Help(_)) =>
           slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
+
+        case Some(Stats(_)) =>
+
+          val statsMessage = renderLunchmasterStatistics(
+            message.channel,
+            ".* Created new lunch instance at: (.*) with (.*) as Lunchmaster",
+            statsMaxDays
+          )
+
+          slack ! toSendMessage(message.channel, statsMessage, Success)
 
         case Some(command) =>
           (lunchActor ? command)

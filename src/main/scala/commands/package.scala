@@ -57,6 +57,8 @@ package object commands {
 
   case class Help(caller: UserId) extends Command
 
+  case class Stats(caller: UserId) extends Command
+
   object Create extends OneArgCommand {
     override def name: String = "create"
 
@@ -138,6 +140,12 @@ package object commands {
     override def description: String = "prints this usage text"
   }
 
+  object Stats extends NoArgCommand {
+    override def name: String = "stats"
+
+    override def description: String = "prints historic orders statistics"
+  }
+
   val allCommands = Seq(
     Create,
     Close,
@@ -150,7 +158,8 @@ package object commands {
     Leave,
     Choose,
     Pay,
-    Help
+    Help,
+    Stats
   )
 
 }
