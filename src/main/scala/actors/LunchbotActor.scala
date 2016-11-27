@@ -5,10 +5,10 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern._
 import akka.util.Timeout
 import com.typesafe.config.Config
-import commands.{CommandParsing, CommandUsage, Help, Stats}
+import commands._
 import model.Statuses._
 import model.UserId
-import modules.{SlackApi, Statistics}
+import modules.{Configuration, Messages, SlackApi, Statistics}
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
@@ -24,14 +24,16 @@ import scala.concurrent.duration._
   */
 class LunchbotActor(selfId: String,
                     override val slackApiClient: BlockingSlackApiClient,
-                    config: Config)
+                    override val config: Config)
   extends Actor
     with Logging
     with Formatting
     with CommandParsing
     with CommandUsage
     with SlackApi
-    with Statistics {
+    with Statistics
+    with Messages
+    with Configuration {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -58,6 +60,8 @@ class LunchbotActor(selfId: String,
           slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
+
+          messages[Create].created
 
           val statsMessage = renderLunchmasterStatistics(
             message.channel,
