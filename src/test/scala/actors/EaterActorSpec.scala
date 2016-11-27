@@ -4,6 +4,7 @@ import actors.EaterActor._
 import actors.LunchbotActor.{MentionMessage, ReactionMessage}
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
+import com.typesafe.config.ConfigFactory
 import commands.{Choose, Pay}
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
@@ -21,7 +22,7 @@ class EaterActorSpec
 
     val eater = "some_eater"
 
-    val eaterActor = TestFSMRef(new EaterActor(eater))
+    val eaterActor = TestFSMRef(new EaterActor(eater, ConfigFactory.load))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty
@@ -53,7 +54,7 @@ class EaterActorSpec
 
     val eater = "some_eater"
 
-    val eaterActor = TestFSMRef(new EaterActor(eater))
+    val eaterActor = TestFSMRef(new EaterActor(eater, ConfigFactory.load))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty
