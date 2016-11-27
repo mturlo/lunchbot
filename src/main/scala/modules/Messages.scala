@@ -13,7 +13,7 @@ trait Messages {
 
   _: Configuration =>
 
-  val messagesConfig: Config = config.getConfig("messages")
+  lazy val messagesConfig: Config = config.getConfig("messages")
 
   trait CommandMessages[C <: Command] {
 
@@ -27,7 +27,7 @@ trait Messages {
 
   implicit class CreateCommandMessages(input: CommandMessages[Create]) extends CommandMessages[Create] {
 
-    def created(lunchmaster: String, place: String): String = getMessage("created").format(lunchmaster, place)
+    def created(place: String, lunchmaster: String): String = getMessage("created").format(place, lunchmaster)
 
     val created: String = getMessage("created")
 

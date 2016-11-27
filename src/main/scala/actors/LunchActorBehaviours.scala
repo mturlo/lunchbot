@@ -30,7 +30,7 @@ trait LunchActorBehaviours {
 
     def create(command: Create, sender: ActorRef): State = {
       val formattedPlace = formatUrl(command.place)
-      val message = messages[Create].created(formattedPlace, formatMention(command.caller))
+      val message = messages[Create].created(formatMention(command.caller), formattedPlace)
       sender ! HereMessage(message, Success)
       goto(InProgress) using LunchData(command.caller, formattedPlace, Map.empty)
     }
