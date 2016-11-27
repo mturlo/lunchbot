@@ -61,11 +61,9 @@ class LunchbotActor(selfId: String,
 
         case Some(Stats(_)) =>
 
-          messages[Create].created
-
           val statsMessage = renderLunchmasterStatistics(
             message.channel,
-            ".* Created new lunch instance at: (.*) with (.*) as Lunchmaster",
+            messages[Create].created.regex,
             statsMaxDays
           )
 
