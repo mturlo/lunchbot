@@ -24,3 +24,4 @@ usage: <@lunchbot> `[command]` `[args...]`
 * `choose` `<food name>` - chooses food with `<food name>`
 * `pay` - notifies about payment being made
 * `help` - prints this usage text
+* `stats` - prints historic orders statistics
