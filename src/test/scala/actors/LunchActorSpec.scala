@@ -4,6 +4,7 @@ import actors.LunchActor._
 import actors.LunchbotActor._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
+import com.typesafe.config.ConfigFactory
 import commands._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FlatSpecLike, MustMatchers}
@@ -21,7 +22,7 @@ class LunchActorSpec
 
   it should "process lunch creation and finishing" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -90,7 +91,7 @@ class LunchActorSpec
 
   it should "process eater joins" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -148,7 +149,7 @@ class LunchActorSpec
 
   it should "process eater leaves" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -195,7 +196,7 @@ class LunchActorSpec
 
   it should "poke eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -284,7 +285,7 @@ class LunchActorSpec
 
   it should "kick eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -334,7 +335,7 @@ class LunchActorSpec
 
   it should "close lunch order" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -400,7 +401,7 @@ class LunchActorSpec
 
   it should "open a closed lunch" in {
 
-    val lunchActor = TestFSMRef(new LunchActor)
+    val lunchActor = TestFSMRef(new LunchActor(ConfigFactory.load))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"

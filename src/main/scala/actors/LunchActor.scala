@@ -3,9 +3,11 @@ package actors
 import actors.LunchActor._
 import akka.actor.{ActorRef, FSM, Props}
 import akka.util.Timeout
+import com.typesafe.config.Config
 import commands._
 import model.Statuses.{apply => _}
 import model.UserId
+import modules.{Configuration, Messages}
 import util.{Formatting, Logging}
 
 import scala.concurrent.ExecutionContext
@@ -14,11 +16,13 @@ import scala.concurrent.duration._
 /**
   * Created by mactur on 01/10/2016.
   */
-class LunchActor
+class LunchActor(override val config: Config)
   extends FSM[State, Data]
     with LunchActorBehaviours
     with Logging
-    with Formatting {
+    with Formatting
+    with Configuration
+    with Messages {
 
   implicit val askTimeout = Timeout(100 milliseconds)
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -145,6 +149,6 @@ object LunchActor {
 
   case class EaterReport(eaterId: UserId, state: EaterActor.State, data: EaterActor.Data)
 
-  def props: Props = Props[LunchActor]
+  def props(config: Config): Props = Props(new LunchActor(config))
 
 }

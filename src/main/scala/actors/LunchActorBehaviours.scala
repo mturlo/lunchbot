@@ -7,6 +7,7 @@ import akka.actor.{ActorRef, FSM, PoisonPill}
 import akka.pattern._
 import commands._
 import model.Statuses._
+import modules.Messages
 import util.Formatting
 
 import scala.concurrent.Future.{apply => _, _}
@@ -19,7 +20,8 @@ import scala.reflect.ClassTag
 trait LunchActorBehaviours {
 
   _: FSM[State, Data]
-    with Formatting =>
+    with Formatting
+    with Messages =>
 
   implicit val askTimeout: akka.util.Timeout
   implicit val executionContext: ExecutionContext
@@ -28,12 +30,13 @@ trait LunchActorBehaviours {
 
     def create(command: Create, sender: ActorRef): State = {
       val formattedPlace = formatUrl(command.place)
-      sender ! HereMessage(s"Created new lunch instance at: $formattedPlace with ${formatMention(command.caller)} as Lunchmaster", Success)
+      val message = messages[Create].created(formattedPlace, formatMention(command.caller))
+      sender ! HereMessage(message, Success)
       goto(InProgress) using LunchData(command.caller, formattedPlace, Map.empty)
     }
 
     def unhandled(sender: ActorRef): State = {
-      sender ! SimpleMessage("No current running lunch processes", Failure)
+      sender ! SimpleMessage(messages[Create].noLunch, Failure)
       stay
     }
 

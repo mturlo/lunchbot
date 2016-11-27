@@ -1,5 +1,6 @@
 package modules
 
+import com.typesafe.config.Config
 import commands.{Command, Create}
 
 import scala.reflect.ClassTag
@@ -12,17 +13,21 @@ trait Messages {
 
   _: Configuration =>
 
+  val messagesConfig: Config = config.getConfig("messages")
+
   trait CommandMessages[C <: Command] {
 
     protected def getMessage(key: String)(implicit ev: ClassTag[C]): String = {
 
-      config.getString(ev.runtimeClass.getSimpleName.toLowerCase + s".$key")
+      messagesConfig.getString(ev.runtimeClass.getSimpleName.toLowerCase + s".$key")
 
     }
 
   }
 
   implicit class CreateCommandMessages(input: CommandMessages[Create]) extends CommandMessages[Create] {
+
+    def created(lunchmaster: String, place: String): String = getMessage("created").format(lunchmaster, place)
 
     val created: String = getMessage("created")
 
@@ -32,7 +37,7 @@ trait Messages {
 
   implicit class MessageString(input: String) {
 
-    val regex: Regex = (".* " + input.replaceAll("%s", "(.*)")).r
+    val regex: Regex = (".*" + input.replaceAll("%s", "(.*)")).r
 
   }
 
