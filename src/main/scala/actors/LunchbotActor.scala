@@ -9,12 +9,12 @@ import commands._
 import model.Statuses._
 import model.UserId
 import modules.{Configuration, Messages, SlackApi, Statistics}
+import net.ceedubs.ficus.Ficus._
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.{Formatting, Logging}
-import net.ceedubs.ficus.Ficus._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -60,14 +60,7 @@ class LunchbotActor(selfId: String,
           slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
-
-          val statsMessage = renderLunchmasterStatistics(
-            message.channel,
-            messages[Create].created.regex,
-            statsMaxDays
-          )
-
-          slack ! toSendMessage(message.channel, statsMessage, Success)
+          slack ! toSendMessage(message.channel, renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
 
         case Some(command) =>
           (lunchActor ? command)

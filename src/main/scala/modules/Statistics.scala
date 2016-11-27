@@ -1,19 +1,22 @@
 package modules
 
+import commands.Create
+
 import scala.concurrent.ExecutionContext
-import scala.util.matching.Regex
 
 /**
   * Created by mactur on 26/11/2016.
   */
 trait Statistics {
 
-  _: SlackApi =>
+  _: SlackApi
+    with Messages =>
 
   def getLunchmasterStatistics(channel: String,
-                               createRegex: Regex,
                                maxMessages: Option[Int] = None)
                               (implicit executionContext: ExecutionContext): Map[String, Int] = {
+
+    val createRegex = messages[Create].created.regex
 
     val historyChunk = slackApiClient.getChannelHistory(channel, count = maxMessages)
 
@@ -33,11 +36,10 @@ trait Statistics {
   }
 
   def renderLunchmasterStatistics(channel: String,
-                                  createRegex: Regex,
                                   maxMessages: Option[Int] = None)
                                  (implicit executionContext: ExecutionContext): String = {
 
-    val occurrenceMap = getLunchmasterStatistics(channel, createRegex, maxMessages)
+    val occurrenceMap = getLunchmasterStatistics(channel, maxMessages)
 
     val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
 
