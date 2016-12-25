@@ -14,7 +14,7 @@ trait CommandUsage {
 
     val header = s"usage: ${formatMention(selfId)} `[command]` `[args...]`"
 
-    val commands = allCommands.map {
+    val commands = Commands.allCommands.map {
 
       case oneArg: OneArgCommand =>
         s"• `${oneArg.name}` `<${oneArg.argName}>` - ${oneArg.description}"

@@ -20,7 +20,7 @@ trait CommandParsing {
   def parse(message: Message): Option[Command] = {
 
     val nonAppliedPartials: Seq[String => CommandPartial] = {
-      allCommands.map {
+      Commands.allCommands.map {
         case oneArg: OneArgCommand => oneArgCommand(oneArg.name, oneArg.apply) _
         case noArg: NoArgCommand => noArgCommand(noArg.name, noArg.apply) _
       }

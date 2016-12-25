@@ -16,7 +16,7 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   }
 
   it should "parse all commands" in new CommandParsing {
-    allCommands foreach {
+    Commands.allCommands foreach {
       case oneArg: OneArgCommand => assertOneArgCommand(oneArg.name, oneArg.apply, parse)
       case noArg: NoArgCommand => assertNoArgCommand(noArg.name, noArg.apply, parse)
     }
