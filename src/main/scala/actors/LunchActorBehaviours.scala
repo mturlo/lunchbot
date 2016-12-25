@@ -48,7 +48,7 @@ trait LunchActorBehaviours {
   trait WhenInProgress {
 
     def create(command: Create, data: LunchData, sender: ActorRef): State = {
-      sender ! SimpleMessage(messages[Create].alreadyRunning(formatUrl(command.place), formatMention(command.caller)), Failure)
+      sender ! SimpleMessage(messages[Create].alreadyRunning(formatUrl(data.place), formatMention(data.lunchmaster)), Failure)
       stay
     }
 
