@@ -19,7 +19,9 @@ libraryDependencies ++= {
 
   Seq(
     "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
-    "com.iheart" %% "ficus" % Versions.ficus
+    "com.iheart" %% "ficus" % Versions.ficus,
+    "com.h2database" % "h2" % "1.4.193",
+    "io.getquill" %% "quill-jdbc" % "1.0.1"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
