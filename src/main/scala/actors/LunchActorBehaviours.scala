@@ -34,7 +34,7 @@ trait LunchActorBehaviours {
     }
 
     def unhandled(sender: ActorRef): State = {
-      sender ! SimpleMessage(message("unhandled.no-lunch"), Failure)
+      sender ! SimpleMessage(messages[Unhandled].noLunch, Failure)
       stay
     }
 
@@ -210,7 +210,7 @@ trait LunchActorBehaviours {
     }
 
     def unhandled(sender: ActorRef): State = {
-      sender ! SimpleMessage(message("unhandled.closed"), Failure)
+      sender ! SimpleMessage(messages[Unhandled].closed, Failure)
       stay
     }
 
@@ -234,7 +234,7 @@ trait LunchActorBehaviours {
     if (command.caller == data.lunchmaster) {
       authorised
     } else {
-      sender ! SimpleMessage(message("unhandled.lunchmaster-only"), Failure)
+      sender ! SimpleMessage(messages[Unhandled].lunchmasterOnly, Failure)
       stay
     }
   }

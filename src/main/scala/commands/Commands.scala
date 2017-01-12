@@ -56,6 +56,8 @@ case class Help(caller: UserId) extends Command
 
 case class Stats(caller: UserId) extends Command
 
+case class Unhandled(caller: UserId) extends Command
+
 object Create extends OneArgCommand {
   override def name: String = "create"
 

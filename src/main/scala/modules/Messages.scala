@@ -118,6 +118,16 @@ trait Messages {
 
   }
 
+  implicit class UnhandledCommandMessages(input: CommandMessages[Unhandled]) extends CommandMessages[Unhandled] {
+
+    val noLunch: String = getMessage("no-lunch")
+
+    val closed: String = getMessage("closed")
+
+    val lunchmasterOnly: String = getMessage("lunchmaster-only")
+
+  }
+
   implicit class MessageString(input: String) {
 
     val regex: Regex = (".*" + input.replaceAll("%s", "(.*)")).r
@@ -125,8 +135,6 @@ trait Messages {
   }
 
   def messages[C <: Command]: CommandMessages[C] = new CommandMessages[C] {}
-
-  def message(key: String): String = messagesConfig.getString(key)
 
 }
 
