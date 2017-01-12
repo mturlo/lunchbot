@@ -6,9 +6,6 @@ import slack.rtm.SlackRtmClient
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-/**
-  * Created by mactur on 29/09/2016.
-  */
 object Main extends App {
 
   implicit val actorSystem = ActorSystem("slack")

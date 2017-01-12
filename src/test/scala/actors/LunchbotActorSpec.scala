@@ -12,9 +12,6 @@ import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.Formatting
 
-/**
-  * Created by mactur on 05/10/2016.
-  */
 class LunchbotActorSpec
   extends TestKit(ActorSystem("LunchbotActorSpec"))
     with FlatSpecLike

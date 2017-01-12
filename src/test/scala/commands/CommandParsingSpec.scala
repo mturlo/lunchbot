@@ -4,9 +4,6 @@ import model.UserId
 import org.scalatest.{Assertion, FlatSpec, MustMatchers}
 import slack.models.Message
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 class CommandParsingSpec extends FlatSpec with MustMatchers {
 
   val testUser: UserId = "test_user"

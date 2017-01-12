@@ -10,13 +10,10 @@ import model.Statuses._
 import modules.{Configuration, Messages}
 import util.Formatting
 
-import scala.concurrent.Future.{apply => _, _}
+import scala.concurrent.Future._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
-/**
-  * Created by mactur on 09/10/2016.
-  */
 trait LunchActorBehaviours {
 
   _: FSM[State, Data]

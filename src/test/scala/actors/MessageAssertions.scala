@@ -8,9 +8,6 @@ import org.scalatest.{Assertion, MustMatchers}
 
 import scala.reflect.ClassTag
 
-/**
-  * Created by mactur on 09/10/2016.
-  */
 trait MessageAssertions {
 
   self: TestKitBase

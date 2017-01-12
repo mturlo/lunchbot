@@ -8,9 +8,6 @@ import com.typesafe.config.ConfigFactory
 import commands.{Choose, Pay}
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 class EaterActorSpec
   extends TestKit(ActorSystem("EaterActorSpec"))
     with FlatSpecLike

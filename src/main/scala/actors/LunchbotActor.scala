@@ -19,9 +19,6 @@ import util.{Formatting, Logging}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-/**
-  * Created by mactur on 29/09/2016.
-  */
 class LunchbotActor(selfId: String,
                     override val slackApiClient: BlockingSlackApiClient,
                     override val config: Config)

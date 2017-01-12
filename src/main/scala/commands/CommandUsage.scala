@@ -3,9 +3,6 @@ package commands
 import model.UserId
 import util.Formatting
 
-/**
-  * Created by mactur on 05/10/2016.
-  */
 trait CommandUsage {
 
   self: Formatting =>

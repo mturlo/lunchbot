@@ -6,9 +6,6 @@ import commands._
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
 
-/**
-  * Created by mactur on 27/11/2016.
-  */
 trait Messages {
 
   _: Configuration =>

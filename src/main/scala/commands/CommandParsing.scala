@@ -2,9 +2,6 @@ package commands
 
 import slack.models.Message
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 trait CommandParsing {
 
   type CommandPartial = PartialFunction[(String, Option[String]), Option[Command]]

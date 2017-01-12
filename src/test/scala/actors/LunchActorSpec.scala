@@ -9,9 +9,6 @@ import commands._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 class LunchActorSpec
   extends TestKit(ActorSystem("LunchActorSpec"))
     with ImplicitSender

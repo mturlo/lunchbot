@@ -10,9 +10,6 @@ import model.Statuses._
 import model.UserId
 import modules.{Configuration, Messages}
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 class EaterActor(eaterId: UserId,
                  override val config: Config)
   extends FSM[State, Data]

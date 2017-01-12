@@ -4,9 +4,6 @@ import commands.Create
 
 import scala.concurrent.ExecutionContext
 
-/**
-  * Created by mactur on 26/11/2016.
-  */
 trait Statistics {
 
   _: SlackApi

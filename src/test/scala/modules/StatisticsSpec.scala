@@ -10,9 +10,6 @@ import slack.api.{BlockingSlackApiClient, HistoryChunk}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-/**
-  * Created by mactur on 27/11/2016.
-  */
 class StatisticsSpec extends FlatSpec with MustMatchers with MockitoSugar {
 
   class StatisticsTest
