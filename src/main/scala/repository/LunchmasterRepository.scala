@@ -1,13 +1,12 @@
 package repository
 
+import config.DbConfig.{Case, Dialect}
 import io.getquill.{H2Dialect, JdbcContext, SnakeCase}
 import util.Logging
 import model._
 
-class LunchmasterRepository
+case class LunchmasterRepository(ctx: JdbcContext[Dialect, Case])
   extends Logging {
-
-  lazy val ctx = new JdbcContext[H2Dialect, SnakeCase]("storage")
 
   import ctx._
 

@@ -1,6 +1,9 @@
-import actors.LunchbotActor
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import com.typesafe.config.{Config, ConfigFactory}
+import config.DbConfig.{Case, Dialect}
+import config.{Application, ApplicationConfig}
+import io.getquill.JdbcContext
+import org.zalando.grafter.GenericReader
 import slack.rtm.SlackRtmClient
 
 import scala.concurrent.Await
@@ -16,13 +19,23 @@ object Main extends App {
 
   val client = SlackRtmClient(token, timeout)
 
-  val selfId: String = client.state.self.id
-
   val config: Config = ConfigFactory.load()
 
-  val lunchbotActor: ActorRef = actorSystem.actorOf(LunchbotActor.props(selfId, client.apiClient, config), "lunchbot")
+  lazy val jdbcContext = new JdbcContext[Dialect, Case]("storage")
 
-  client.addEventListener(lunchbotActor)
+  val applicationConfig: ApplicationConfig = {
+    ApplicationConfig(
+      config,
+      actorSystem,
+      client,
+      jdbcContext
+    )
+  }
+
+  val application: Application = {
+    GenericReader[ApplicationConfig, Application]
+      .run(applicationConfig)
+  }
 
   sys.addShutdownHook {
     client.close()

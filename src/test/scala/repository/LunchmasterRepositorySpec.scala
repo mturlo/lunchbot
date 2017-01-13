@@ -1,5 +1,7 @@
 package repository
 
+import config.DbConfig.{Case, Dialect}
+import io.getquill.JdbcContext
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, MustMatchers}
 
 class LunchmasterRepositorySpec
@@ -7,7 +9,9 @@ class LunchmasterRepositorySpec
     with MustMatchers
     with BeforeAndAfterEach {
 
-  val lunchmasterRepository = new LunchmasterRepository
+  lazy val jdbcContext = new JdbcContext[Dialect, Case]("storage") // todo create test app config
+
+  val lunchmasterRepository = LunchmasterRepository(jdbcContext)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

@@ -21,7 +21,8 @@ libraryDependencies ++= {
     "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
     "com.iheart" %% "ficus" % Versions.ficus,
     "com.h2database" % "h2" % "1.4.193",
-    "io.getquill" %% "quill-jdbc" % "1.0.1"
+    "io.getquill" %% "quill-jdbc" % "1.0.1",
+    "org.zalando" %% "grafter" % "1.3.3"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
@@ -36,7 +37,7 @@ scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-language:postfixOps")
 mainClass in assembly := Some("Main")
 
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", xs@_*) => MergeStrategy.discard
+  case PathList("META-INF", _*) => MergeStrategy.discard
   case PathList("reference.conf") => MergeStrategy.concat
   case x => MergeStrategy.first
 }
