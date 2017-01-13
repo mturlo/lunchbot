@@ -8,8 +8,9 @@ import com.typesafe.config.Config
 import commands._
 import model.Statuses._
 import model.UserId
-import modules.{Configuration, Messages, SlackApi, Statistics}
+import modules.{SlackApi, Statistics}
 import net.ceedubs.ficus.Ficus._
+import service.MessagesService
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
@@ -20,22 +21,21 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 class LunchbotActor(selfId: String,
+                    val messagesService: MessagesService,
                     override val slackApiClient: BlockingSlackApiClient,
-                    override val config: Config)
+                    config: Config)
   extends Actor
     with Logging
     with Formatting
     with CommandParsing
     with CommandUsage
     with SlackApi
-    with Statistics
-    with Messages
-    with Configuration {
+    with Statistics {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
 
-  val lunchActor: ActorRef = context.actorOf(LunchActor.props(config), "lunch")
+  val lunchActor: ActorRef = context.actorOf(LunchActor.props(messagesService), "lunch")
 
   val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
 
@@ -107,9 +107,10 @@ class LunchbotActor(selfId: String,
 object LunchbotActor extends Formatting {
 
   def props(selfId: String,
+            messagesService: MessagesService,
             slackApiClient: BlockingSlackApiClient,
             config: Config): Props = {
-    Props(new LunchbotActor(selfId, slackApiClient, config))
+    Props(new LunchbotActor(selfId, messagesService, slackApiClient, config))
   }
 
   sealed trait OutboundMessage {

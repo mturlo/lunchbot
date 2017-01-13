@@ -1,9 +1,11 @@
 import akka.actor.ActorSystem
+import cats._
 import com.typesafe.config.{Config, ConfigFactory}
 import config.DbConfig.{Case, Dialect}
 import config.{Application, ApplicationConfig}
 import io.getquill.JdbcContext
-import org.zalando.grafter.GenericReader
+import org.zalando.grafter.{GenericReader, Rewriter, StartResult, StopResult}
+import service.{LunchbotService, MessagesService}
 import slack.rtm.SlackRtmClient
 
 import scala.concurrent.Await
@@ -32,13 +34,18 @@ object Main extends App {
     )
   }
 
+  import Rewriter._
+
   val application: Application = {
-    GenericReader[ApplicationConfig, Application]
-      .run(applicationConfig)
+    GenericReader[ApplicationConfig, Application].run(applicationConfig)
+      .singleton[MessagesService]
+      .singleton[LunchbotService]
   }
 
+  val started: Eval[List[StartResult]] = Rewriter.start(application)
+
   sys.addShutdownHook {
-    client.close()
+    val stop: Eval[List[StopResult]] = Rewriter.stop(application)
     actorSystem.terminate()
   }
 

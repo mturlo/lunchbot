@@ -6,11 +6,10 @@ import com.typesafe.config.Config
 import config.DbConfig.{Case, Dialect}
 import io.getquill.{H2Dialect, JdbcContext, SnakeCase}
 import org.zalando.grafter.GenericReader._
-import service.{LunchbotService, MessagesService}
+import service.LunchbotService
 import slack.rtm.SlackRtmClient
 
-case class Application(messagesService: MessagesService,
-                       lunchbotService: LunchbotService)
+case class Application(lunchbotService: LunchbotService)
 
 object Application {
 

@@ -3,12 +3,10 @@ package actors
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.{ActorRef, FSM, PoisonPill}
+import akka.actor.{ActorRef, PoisonPill}
 import akka.pattern._
 import commands._
 import model.Statuses._
-import modules.{Configuration, Messages}
-import util.Formatting
 
 import scala.concurrent.Future._
 import scala.concurrent.{ExecutionContext, Future}
@@ -16,13 +14,12 @@ import scala.reflect.ClassTag
 
 trait LunchActorBehaviours {
 
-  _: FSM[State, Data]
-    with Formatting
-    with Configuration
-    with Messages =>
+  _: LunchActor =>
 
   implicit val askTimeout: akka.util.Timeout
   implicit val executionContext: ExecutionContext
+
+  import messagesService._
 
   trait WhenIdle {
 
@@ -118,7 +115,8 @@ trait LunchActorBehaviours {
           stay using data
         case None =>
           sender ! ReactionMessage(Success)
-          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller, config), command.caller))
+
+          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller, messagesService), command.caller))
       }
     }
 

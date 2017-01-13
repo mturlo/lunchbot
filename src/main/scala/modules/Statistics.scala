@@ -1,13 +1,15 @@
 package modules
 
+import actors.LunchbotActor
 import commands.Create
 
 import scala.concurrent.ExecutionContext
 
 trait Statistics {
 
-  _: SlackApi
-    with Messages =>
+  _: LunchbotActor =>
+
+  import messagesService._
 
   def getLunchmasterStatistics(channel: String,
                                maxMessages: Option[Int] = None)

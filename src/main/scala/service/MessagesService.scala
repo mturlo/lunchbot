@@ -4,11 +4,12 @@ import cats.data.Reader
 import com.typesafe.config.Config
 import commands._
 import config.ApplicationConfig
+import util.Logging
 
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
 
-case class MessagesService(messagesConfig: Config) {
+case class MessagesService(messagesConfig: Config) extends Logging {
 
   sealed trait CommandMessages[C <: Command] {
 
@@ -20,7 +21,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class CreateCommandMessages(input: CommandMessages[Create]) extends CommandMessages[Create] {
+  implicit class CreateCommandMessages(input: CommandMessages[Create]) extends CommandMessages[Create] {
 
     def created(place: String, lunchmaster: String): String = created.format(place, lunchmaster)
 
@@ -30,13 +31,13 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class FinishCommandMessages(input: CommandMessages[Finish]) extends CommandMessages[Finish] {
+  implicit class FinishCommandMessages(input: CommandMessages[Finish]) extends CommandMessages[Finish] {
 
     val finished: String = getMessage("finished")
 
   }
 
-  private implicit class KickCommandMessages(input: CommandMessages[Kick]) extends CommandMessages[Kick] {
+  implicit class KickCommandMessages(input: CommandMessages[Kick]) extends CommandMessages[Kick] {
 
     def kicked(eater: String): String = getMessage("kicked").format(eater)
 
@@ -44,7 +45,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class SummaryCommandMessages(input: CommandMessages[Summary]) extends CommandMessages[Summary] {
+  implicit class SummaryCommandMessages(input: CommandMessages[Summary]) extends CommandMessages[Summary] {
 
     def header(place: String, lunchMaster: String): String = getMessage("header").format(place, lunchMaster)
 
@@ -60,19 +61,19 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class JoinCommandMessages(input: CommandMessages[Join]) extends CommandMessages[Join] {
+  implicit class JoinCommandMessages(input: CommandMessages[Join]) extends CommandMessages[Join] {
 
     val alreadyJoined: String = getMessage("already-joined")
 
   }
 
-  private implicit class LeaveCommandMessages(input: CommandMessages[Leave]) extends CommandMessages[Leave] {
+  implicit class LeaveCommandMessages(input: CommandMessages[Leave]) extends CommandMessages[Leave] {
 
     def notJoined(place: String): String = getMessage("not-joined").format(place)
 
   }
 
-  private implicit class ChooseCommandMessages(input: CommandMessages[Choose]) extends CommandMessages[Choose] {
+  implicit class ChooseCommandMessages(input: CommandMessages[Choose]) extends CommandMessages[Choose] {
 
     val notJoined: String = getMessage("not-joined")
 
@@ -80,7 +81,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class PayCommandMessages(input: CommandMessages[Pay]) extends CommandMessages[Pay] {
+  implicit class PayCommandMessages(input: CommandMessages[Pay]) extends CommandMessages[Pay] {
 
     val notJoined: String = getMessage("not-joined")
 
@@ -90,7 +91,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class CloseCommandMessages(input: CommandMessages[Close]) extends CommandMessages[Close] {
+  implicit class CloseCommandMessages(input: CommandMessages[Close]) extends CommandMessages[Close] {
 
     val closed: String = getMessage("closed")
 
@@ -100,7 +101,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class OpenCommandMessages(input: CommandMessages[Open]) extends CommandMessages[Open] {
+  implicit class OpenCommandMessages(input: CommandMessages[Open]) extends CommandMessages[Open] {
 
     def opened(place: String): String = getMessage("opened").format(place)
 
@@ -108,7 +109,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class PokeCommandMessages(input: CommandMessages[Poke]) extends CommandMessages[Poke] {
+  implicit class PokeCommandMessages(input: CommandMessages[Poke]) extends CommandMessages[Poke] {
 
     val notChosen: String = getMessage("not-chosen")
 
@@ -116,7 +117,7 @@ case class MessagesService(messagesConfig: Config) {
 
   }
 
-  private implicit class UnhandledCommandMessages(input: CommandMessages[Unhandled]) extends CommandMessages[Unhandled] {
+  implicit class UnhandledCommandMessages(input: CommandMessages[Unhandled]) extends CommandMessages[Unhandled] {
 
     val noLunch: String = getMessage("no-lunch")
 

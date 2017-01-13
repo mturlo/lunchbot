@@ -4,17 +4,16 @@ import actors.EaterActor._
 import actors.LunchActor.EaterReport
 import actors.LunchbotActor.{MentionMessage, ReactionMessage}
 import akka.actor.{FSM, Props}
-import com.typesafe.config.Config
 import commands.{Choose, Pay, Poke, Summary}
 import model.Statuses._
 import model.UserId
-import modules.{Configuration, Messages}
+import service.MessagesService
 
 class EaterActor(eaterId: UserId,
-                 override val config: Config)
-  extends FSM[State, Data]
-    with Configuration
-    with Messages {
+                 messagesService: MessagesService)
+  extends FSM[State, Data] {
+
+  import messagesService._
 
   startWith(Joined, Empty)
 
@@ -94,7 +93,14 @@ object EaterActor {
 
   case class FoodData(food: String) extends Data
 
-
-  def props(eaterId: UserId, config: Config): Props = Props(new EaterActor(eaterId, config))
+  def props(eaterId: UserId,
+            messagesService: MessagesService): Props = {
+    Props(
+      new EaterActor(
+        eaterId,
+        messagesService
+      )
+    )
+  }
 
 }
