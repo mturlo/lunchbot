@@ -7,11 +7,14 @@ import io.getquill.JdbcContext
 import org.zalando.grafter.{GenericReader, Rewriter, StartResult, StopResult}
 import service.{LunchbotService, MessagesService}
 import slack.rtm.SlackRtmClient
+import util.Logging
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-object Main extends App {
+object Main
+  extends App
+    with Logging {
 
   implicit val actorSystem = ActorSystem("slack")
 
@@ -44,8 +47,14 @@ object Main extends App {
 
   val started: Eval[List[StartResult]] = Rewriter.start(application)
 
+  val startResult = started.value
+
+  logger.info(s"Lunchbot started with result: $startResult")
+
   sys.addShutdownHook {
-    val stop: Eval[List[StopResult]] = Rewriter.stop(application)
+    val stopped: Eval[List[StopResult]] = Rewriter.stop(application)
+    val stopResult = stopped.value
+    logger.info(s"Lunchbot stopped with result: $stopResult")
     actorSystem.terminate()
   }
 
