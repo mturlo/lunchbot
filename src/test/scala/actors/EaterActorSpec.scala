@@ -4,7 +4,7 @@ import actors.EaterActor._
 import actors.LunchbotActor.{MentionMessage, ReactionMessage}
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
-import application.TestApplication
+import application.TestApplicationSpec
 import commands.{Choose, Pay}
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
@@ -13,13 +13,14 @@ class EaterActorSpec
     with FlatSpecLike
     with MustMatchers
     with ImplicitSender
-    with MessageAssertions {
+    with MessageAssertions
+    with TestApplicationSpec {
 
-  it should "process food selection" in new TestApplication {
+  it should "process food selection" in {
 
     val eater = "some_eater"
 
-    val eaterActor = TestFSMRef(new EaterActor(eater, messagesService))
+    val eaterActor = TestFSMRef(new EaterActor(eater, testApp.messagesService))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty
@@ -47,11 +48,11 @@ class EaterActorSpec
 
   }
 
-  it should "process payment" in new TestApplication {
+  it should "process payment" in {
 
     val eater = "some_eater"
 
-    val eaterActor = TestFSMRef(new EaterActor(eater, messagesService))
+    val eaterActor = TestFSMRef(new EaterActor(eater, testApp.messagesService))
 
     eaterActor.stateName mustBe Joined
     eaterActor.stateData mustBe Empty

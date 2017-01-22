@@ -39,6 +39,7 @@ class Application()(implicit actorSystem: ActorSystem)
 
   override def stop(): Unit = {
     lunchbotService.stop()
+    jdbcConnection.jdbcContext.close()
   }
 
 }

@@ -4,7 +4,7 @@ import actors.LunchActor._
 import actors.LunchbotActor._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
-import application.{Application, TestApplication}
+import application.TestApplicationSpec
 import commands._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FlatSpecLike, MustMatchers}
@@ -15,11 +15,12 @@ class LunchActorSpec
     with FlatSpecLike
     with MustMatchers
     with Eventually
-    with MessageAssertions {
+    with MessageAssertions
+    with TestApplicationSpec {
 
-  it should "process lunch creation and finishing" in new TestApplication {
+  it should "process lunch creation and finishing" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -86,9 +87,9 @@ class LunchActorSpec
 
   }
 
-  it should "process eater joins" in new TestApplication {
+  it should "process eater joins" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -144,9 +145,9 @@ class LunchActorSpec
 
   }
 
-  it should "process eater leaves" in new TestApplication {
+  it should "process eater leaves" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -191,9 +192,9 @@ class LunchActorSpec
 
   }
 
-  it should "poke eaters" in new TestApplication {
+  it should "poke eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -280,9 +281,9 @@ class LunchActorSpec
 
   }
 
-  it should "kick eaters" in new TestApplication {
+  it should "kick eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -330,9 +331,9 @@ class LunchActorSpec
 
   }
 
-  it should "close lunch order" in new TestApplication {
+  it should "close lunch order" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -396,9 +397,9 @@ class LunchActorSpec
 
   }
 
-  it should "open a closed lunch" in new TestApplication {
+  it should "open a closed lunch" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(messagesService))
+    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"

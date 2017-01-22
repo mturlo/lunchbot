@@ -1,6 +1,6 @@
 package service
 
-import application.TestApplication
+import application.TestApplicationSpec
 import commands.Create
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
@@ -10,10 +10,16 @@ import slack.api.HistoryChunk
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StatisticsServiceSpec extends FlatSpec with MustMatchers with MockitoSugar {
+class StatisticsServiceSpec
+  extends FlatSpec
+    with MustMatchers
+    with MockitoSugar
+    with TestApplicationSpec {
 
-  it should "calculate lunchmaster statistics" in new TestApplication {
+  it should "calculate lunchmaster statistics" in {
 
+    import Mockito._
+    import testApp._
     import messagesService._
 
     val channel = "test_channel"
@@ -30,9 +36,7 @@ class StatisticsServiceSpec extends FlatSpec with MustMatchers with MockitoSugar
       lunchmaster3 -> count3
     )
 
-    import Mockito._
-
-    private def foo(lunchmaster: String): JsValue = {
+    def foo(lunchmaster: String): JsValue = {
       Json.obj(
         "text" -> messages[Create].created("some_place", lunchmaster)
       )

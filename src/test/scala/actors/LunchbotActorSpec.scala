@@ -2,13 +2,11 @@ package actors
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
-import application.{Application, TestApplication}
-import com.typesafe.config.{Config, ConfigFactory}
+import application.TestApplicationSpec
 import model.UserId
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpecLike, MustMatchers}
-import slack.api.BlockingSlackApiClient
 import slack.models.Message
 import slack.rtm.SlackRtmConnectionActor.SendMessage
 import util.Formatting
@@ -20,18 +18,19 @@ class LunchbotActorSpec
     with ImplicitSender
     with ScalaFutures
     with MockitoSugar
-    with Formatting {
+    with Formatting
+    with TestApplicationSpec {
 
   val testUser = "test_user"
   val selfId = "some_self_id"
-
-  val config: Config = ConfigFactory.load()
 
   private def getMessage(text: String, userId: UserId = testUser): Message = {
     Message("", "", userId, text, None)
   }
 
-  it should "only react when mentioned" in new TestApplication {
+  it should "only react when mentioned" in {
+
+    import testApp._
 
     val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient.apiClient, config))
 
@@ -49,7 +48,9 @@ class LunchbotActorSpec
 
   }
 
-  it should "not react to own mentions" in new TestApplication {
+  it should "not react to own mentions" in {
+
+    import testApp._
 
     val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient.apiClient, config))
 

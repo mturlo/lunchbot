@@ -1,28 +1,16 @@
 package repository
 
-import application.TestApplication
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, MustMatchers}
+import application.TestApplicationSpec
+import org.scalatest.{FlatSpec, MustMatchers}
 
 class LunchmasterRepositorySpec
   extends FlatSpec
     with MustMatchers
-    with BeforeAndAfterEach {
-
-  val testApplication = new TestApplication
-
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    testApplication.lunchmasterRepository.truncate
-  }
-
-  override protected def afterEach(): Unit = {
-    super.afterEach()
-    testApplication.lunchmasterRepository.ctx.close()
-  }
+    with TestApplicationSpec {
 
   it should "persist lunchmasters" in {
 
-    val lunchmasterRepository = testApplication.lunchmasterRepository
+    val lunchmasterRepository = testApp.lunchmasterRepository
 
     import lunchmasterRepository._
 
