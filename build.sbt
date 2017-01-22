@@ -22,7 +22,7 @@ libraryDependencies ++= {
     "com.iheart" %% "ficus" % Versions.ficus,
     "com.h2database" % "h2" % "1.4.193",
     "io.getquill" %% "quill-jdbc" % "1.0.1",
-    "org.zalando" %% "grafter" % "1.3.3"
+    "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",

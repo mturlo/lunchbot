@@ -1,12 +1,14 @@
 package repository
 
-import config.DbConfig.{Case, Dialect}
-import io.getquill.{H2Dialect, JdbcContext, SnakeCase}
-import util.Logging
+import application.Start
 import model._
+import sql.JdbcConnection
+import util.Logging
 
-case class LunchmasterRepository(ctx: JdbcContext[Dialect, Case])
-  extends Logging {
+case class LunchmasterRepository(jdbcConnection: JdbcConnection)
+  extends Logging
+    with Start
+    with Repository {
 
   import ctx._
 
@@ -22,7 +24,9 @@ case class LunchmasterRepository(ctx: JdbcContext[Dialect, Case])
 
   }
 
-  ctx.executeAction(Lunchmaster.create)
+  override def start(): Unit = {
+    ctx.executeAction(Lunchmaster.create)
+  }
 
   def add(lunchmaster: Lunchmaster): Long = {
     ctx.run(query[Lunchmaster].insert(lift(lunchmaster)))

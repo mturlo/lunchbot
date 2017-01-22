@@ -1,15 +1,15 @@
 package service
 
-import cats.data.Reader
 import com.typesafe.config.Config
 import commands._
-import config.ApplicationConfig
 import util.Logging
 
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
 
-case class MessagesService(messagesConfig: Config) extends Logging {
+case class MessagesService(config: Config) extends Logging {
+
+  val messagesConfig: Config = config.getConfig("messages")
 
   sealed trait CommandMessages[C <: Command] {
 
@@ -134,14 +134,5 @@ case class MessagesService(messagesConfig: Config) extends Logging {
   }
 
   def messages[C <: Command]: CommandMessages[C] = new CommandMessages[C] {}
-
-}
-
-object MessagesService {
-
-  implicit def reader: Reader[ApplicationConfig, MessagesService] = {
-    Reader[ApplicationConfig, Config](_.config.getConfig("messages"))
-      .map(MessagesService.apply)
-  }
 
 }
