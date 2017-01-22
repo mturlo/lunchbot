@@ -1,7 +1,6 @@
 package repository
 
-import config.DbConfig.{Case, Dialect}
-import io.getquill.JdbcContext
+import application.TestApplication
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, MustMatchers}
 
 class LunchmasterRepositorySpec
@@ -9,21 +8,21 @@ class LunchmasterRepositorySpec
     with MustMatchers
     with BeforeAndAfterEach {
 
-  lazy val jdbcContext = new JdbcContext[Dialect, Case]("storage") // todo create test app config
-
-  val lunchmasterRepository = LunchmasterRepository(jdbcContext)
+  val testApplication = new TestApplication
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    lunchmasterRepository.truncate
+    testApplication.lunchmasterRepository.truncate
   }
 
   override protected def afterEach(): Unit = {
     super.afterEach()
-    lunchmasterRepository.ctx.close()
+    testApplication.lunchmasterRepository.ctx.close()
   }
 
   it should "persist lunchmasters" in {
+
+    val lunchmasterRepository = testApplication.lunchmasterRepository
 
     import lunchmasterRepository._
 

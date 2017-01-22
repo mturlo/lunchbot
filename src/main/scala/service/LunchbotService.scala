@@ -8,6 +8,7 @@ import slack.rtm.SlackRtmClient
 import util.Logging
 
 class LunchbotService(messagesService: MessagesService,
+                      statisticsService: StatisticsService,
                       slackRtmClient: SlackRtmClient,
                       actorSystem: ActorSystem,
                       config: Config)
@@ -19,6 +20,7 @@ class LunchbotService(messagesService: MessagesService,
     val props = LunchbotActor.props(
       slackRtmClient.state.self.id,
       messagesService,
+      statisticsService,
       slackRtmClient.apiClient,
       config)
     actorSystem.actorOf(props, "lunchbot")

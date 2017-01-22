@@ -2,6 +2,7 @@ package actors
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import application.{Application, TestApplication}
 import com.typesafe.config.{Config, ConfigFactory}
 import model.UserId
 import org.scalatest.concurrent.ScalaFutures
@@ -30,19 +31,17 @@ class LunchbotActorSpec
     Message("", "", userId, text, None)
   }
 
-  it should "only react when mentioned" in {
+  it should "only react when mentioned" in new TestApplication {
 
-    val mockSlackApi = mock[BlockingSlackApiClient]
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient.apiClient, config))
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi, config))
-
-    val messageWithMention = getMessage(s"<@$selfId> hey there!")
+    val messageWithMention: Message = getMessage(s"<@$selfId> hey there!")
 
     lunchbotActor ! messageWithMention
 
     expectMsgClass(classOf[SendMessage])
 
-    val messageWithoutMention = getMessage("hey there!")
+    val messageWithoutMention: Message = getMessage("hey there!")
 
     lunchbotActor ! messageWithoutMention
 
@@ -50,13 +49,11 @@ class LunchbotActorSpec
 
   }
 
-  it should "not react to own mentions" in {
+  it should "not react to own mentions" in new TestApplication {
 
-    val mockSlackApi = mock[BlockingSlackApiClient]
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient.apiClient, config))
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, mockSlackApi, config))
-
-    val messageWithMention = getMessage(s"<@$selfId> hey there!", selfId)
+    val messageWithMention: Message = getMessage(s"<@$selfId> hey there!", selfId)
 
     lunchbotActor ! messageWithMention
 

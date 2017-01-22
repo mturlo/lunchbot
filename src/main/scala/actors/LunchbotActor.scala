@@ -8,9 +8,9 @@ import com.typesafe.config.Config
 import commands._
 import model.Statuses._
 import model.UserId
-import modules.{SlackApi, Statistics}
+import modules.SlackApi
 import net.ceedubs.ficus.Ficus._
-import service.MessagesService
+import service.{MessagesService, StatisticsService}
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
@@ -22,6 +22,7 @@ import scala.concurrent.duration._
 
 class LunchbotActor(selfId: String,
                     val messagesService: MessagesService,
+                    val statisticsService: StatisticsService,
                     override val slackApiClient: BlockingSlackApiClient,
                     config: Config)
   extends Actor
@@ -29,8 +30,7 @@ class LunchbotActor(selfId: String,
     with Formatting
     with CommandParsing
     with CommandUsage
-    with SlackApi
-    with Statistics {
+    with SlackApi {
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -57,7 +57,7 @@ class LunchbotActor(selfId: String,
           slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
-          slack ! toSendMessage(message.channel, renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
+          slack ! toSendMessage(message.channel, statisticsService.renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
 
         case Some(command) =>
           (lunchActor ? command)
@@ -108,9 +108,10 @@ object LunchbotActor extends Formatting {
 
   def props(selfId: String,
             messagesService: MessagesService,
+            statisticsService: StatisticsService,
             slackApiClient: BlockingSlackApiClient,
             config: Config): Props = {
-    Props(new LunchbotActor(selfId, messagesService, slackApiClient, config))
+    Props(new LunchbotActor(selfId, messagesService, statisticsService, slackApiClient, config))
   }
 
   sealed trait OutboundMessage {

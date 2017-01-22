@@ -1,30 +1,20 @@
 package modules
 
-import com.typesafe.config.{Config, ConfigFactory}
+import application.TestApplication
 import commands.Create
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, MustMatchers}
 import play.api.libs.json.{JsValue, Json}
-import slack.api.{BlockingSlackApiClient, HistoryChunk}
+import slack.api.HistoryChunk
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class StatisticsSpec extends FlatSpec with MustMatchers with MockitoSugar {
+class StatisticsServiceSpec extends FlatSpec with MustMatchers with MockitoSugar {
 
-  class StatisticsTest
-    extends Statistics
-      with SlackApi
-      with Configuration
-      with Messages {
+  it should "calculate lunchmaster statistics" in new TestApplication {
 
-    override val config: Config = ConfigFactory.load
-
-    override val slackApiClient: BlockingSlackApiClient = mock[BlockingSlackApiClient]
-
-  }
-
-  it should "calculate lunchmaster statistics" in new StatisticsTest {
+    import messagesService._
 
     val channel = "test_channel"
 
@@ -54,10 +44,10 @@ class StatisticsSpec extends FlatSpec with MustMatchers with MockitoSugar {
         ((1 to count3) map (_ => foo(lunchmaster3)))
     }
 
-    when(slackApiClient.getChannelHistory(channel, count = Some(maxMessages)))
+    when(mockSlackApi.getChannelHistory(channel, count = Some(maxMessages)))
       .thenReturn(HistoryChunk(None, historyMessages, has_more = false))
 
-    getLunchmasterStatistics(channel, Some(maxMessages)) mustBe expected
+    statisticsService.getLunchmasterStatistics(channel, Some(maxMessages)) mustBe expected
 
   }
 

@@ -1,13 +1,14 @@
-package modules
+package service
 
-import actors.LunchbotActor
 import commands.Create
+import slack.rtm.SlackRtmClient
+import util.Logging
 
 import scala.concurrent.ExecutionContext
 
-trait Statistics {
-
-  _: LunchbotActor =>
+class StatisticsService(messagesService: MessagesService,
+                        slackRtmClient: SlackRtmClient)
+  extends Logging {
 
   import messagesService._
 
@@ -17,7 +18,7 @@ trait Statistics {
 
     val createRegex = messages[Create].created.regex
 
-    val historyChunk = slackApiClient.getChannelHistory(channel, count = maxMessages)
+    val historyChunk = slackRtmClient.apiClient.getChannelHistory(channel, count = maxMessages)
 
     val createLunchMessages = historyChunk.messages.filter { jsMessage =>
       createRegex.findFirstIn((jsMessage \ "text").as[String]).isDefined
