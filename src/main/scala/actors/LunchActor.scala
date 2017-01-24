@@ -3,7 +3,7 @@ package actors
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.{ActorRef, FSM, PoisonPill, Props}
+import akka.actor.{FSM, PoisonPill, Props}
 import akka.pattern._
 import akka.util.Timeout
 import commands._
@@ -22,6 +22,8 @@ class LunchActor(val messagesService: MessagesService)
     with Logging
     with Formatting {
 
+  import messagesService._
+
   implicit val askTimeout = Timeout(100 milliseconds)
   implicit val executionContext: ExecutionContext = context.dispatcher
 
@@ -29,79 +31,184 @@ class LunchActor(val messagesService: MessagesService)
 
   when(Idle) {
 
-    case Event(command: Create, Empty) =>
-      WhenIdle.create(command, sender)
+    case Event(Create(caller, place), Empty) =>
+      val formattedPlace = formatUrl(place)
+      val message = messages[Create].created(formattedPlace, formatMention(caller))
+      sender ! HereMessage(message, Success)
+      goto(InProgress) using LunchData(caller, formattedPlace, Nil)
 
     case Event(_, _) =>
-      WhenIdle.unhandled(sender)
+      sender ! SimpleMessage(messages[Unhandled].noLunch, Failure)
+      stay
+
+  }
+
+  val inProgress: StateFunction = {
+
+    case Event(Create(_, _), data: LunchData) =>
+      sender ! SimpleMessage(messages[Create].alreadyRunning(formatUrl(data.place), formatMention(data.lunchmaster)), Failure)
+      stay
+
+    case Event(command @ Pay(caller), _) =>
+      context.child(caller) match {
+        case Some(eaterActor) =>
+          (eaterActor ? command).pipeTo(sender)
+        case None             =>
+          MentionMessage(messages[Pay].notJoined, caller, Failure)
+      }
+      stay
+
+    case Event(Finish(caller), data: LunchData) =>
+      lunchmasterOnly(caller, data) {
+        data.eaters.flatMap(context.child).foreach(_ ! PoisonPill)
+        sender ! SimpleMessage(messages[Finish].finished, Success)
+        goto(Idle) using Empty
+      }
+
+    case Event(command: Summary, data: LunchData) =>
+      val slack = sender
+      val headerMessage = messages[Summary].header(data.place, formatMention(data.lunchmaster))
+      fanIn[EaterReport](data.eaters, command)
+        .map { reports =>
+          val stateMessages = reports.groupBy(_.state) map {
+            case (Joined, reportsByState)     =>
+              messages[Summary].joined(reportsByState.size)
+            case (FoodChosen, reportsByState) =>
+              messages[Summary].chosen(reportsByState.size)
+            case (Paid, reportsByState)       =>
+              messages[Summary].paid(reportsByState.size)
+          }
+          val totalFoods = reports.map(_.data).map {
+            case FoodData(food) => Some(food)
+            case _              => None
+          }
+          val totalFoodsMessage = totalFoods.flatten match {
+            case Nil   => messages[Summary].nobodyChosen
+            case foods =>
+              val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
+              val orderContents = foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")
+              messages[Summary].currentOrder(orderContents)
+          }
+          val summaryMessage = (headerMessage +: stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
+          slack ! SimpleMessage(summaryMessage, Success)
+        }
+      stay
 
   }
 
   when(InProgress) {
 
-    case Event(command: Create, lunchData: LunchData) =>
-      WhenInProgress.create(command, lunchData, sender)
+    inProgress orElse {
 
-    case Event(command: Join, lunchData: LunchData) =>
-      WhenInProgress.join(command, lunchData, sender)
+      case Event(Join(caller), data: LunchData) =>
+        if (data.eaters.contains(caller)) {
+          sender ! MentionMessage(messages[Join].alreadyJoined, caller, Failure)
+          stay using data
+        } else {
+          sender ! ReactionMessage(Success)
+          context.actorOf(EaterActor.props(caller, messagesService), caller)
+          stay using data.withEater(caller)
+        }
 
-    case Event(command: Leave, lunchData: LunchData) =>
-      WhenInProgress.leave(command, lunchData, sender)
+      case Event(Leave(caller), data: LunchData) =>
+        if (data.eaters.contains(caller)) {
+          sender ! ReactionMessage(Success)
+          context.child(caller).foreach(_ ! PoisonPill)
+          stay using data.removeEater(caller)
+        } else {
+          sender ! MentionMessage(messages[Leave].notJoined(data.place), caller, Failure)
+          stay using data
+        }
 
-    case Event(command: Choose, lunchData: LunchData) =>
-      WhenInProgress.choose(command, lunchData, sender)
+      case Event(command @ Choose(caller, _), _) =>
+        context.child(caller) match {
+          case Some(eaterActor) =>
+            (eaterActor ? command).pipeTo(sender)
+          case None             =>
+            sender ! MentionMessage(messages[Choose].notJoined, caller, Failure)
+        }
+        stay
 
-    case Event(command: Pay, lunchData: LunchData) =>
-      WhenInProgress.pay(command, lunchData, sender)
+      case Event(Close(caller), data: LunchData) =>
+        val slack = sender()
+        lunchmasterOnly(caller, data) {
+          val currentState = stateName
+          val joinedOnly = fanIn[EaterReport](data.eaters, Summary(caller)) map { reports =>
+            reports.filter(_.state == EaterActor.Joined)
+          }
+          joinedOnly map {
+            case Nil =>
+              slack ! HereMessage(messages[Close].closed, Success)
+              self ! Closed
+            case _   =>
+              slack ! SimpleMessage(messages[Close].someNotChosen, Failure)
+              self ! currentState
+          }
+          goto(WaitingForState) using data
+        }
 
-    case Event(command: Finish, lunchData: LunchData) =>
-      WhenInProgress.finish(command, lunchData, sender)
+      case Event(Open(caller), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          sender ! SimpleMessage(messages[Open].alreadyOpen, Failure)
+          stay
+        }
 
-    case Event(command: Close, lunchData: LunchData) =>
-      WhenInProgress.close(command, lunchData, sender)
+      case Event(command @ Poke(caller), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          val slack = sender
+          fanIn[OutboundMessage](data.eaters, command)
+            .map(MessageBundle)
+            .map(slack ! _)
+          stay
+        }
 
-    case Event(command: Open, lunchData: LunchData) =>
-      WhenInProgress.open(command, lunchData, sender)
+      case Event(Kick(caller, kicked), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          if (data.eaters.contains(kicked)) {
+            sender ! SimpleMessage(messages[Kick].kicked(formatMention(kicked)), Success)
+            context.child(kicked).foreach(_ ! PoisonPill)
+            stay using data.removeEater(kicked)
+          } else {
+            sender ! SimpleMessage(messages[Kick].notJoined, Failure)
+            stay
 
-    case Event(command: Poke, lunchData: LunchData) =>
-      WhenInProgress.poke(command, lunchData, sender)
+          }
+        }
 
-    case Event(command: Kick, lunchData: LunchData) =>
-      WhenInProgress.kick(command, lunchData, sender)
-
-    case Event(command: Summary, lunchData: LunchData) =>
-      WhenInProgress.summary(command, lunchData, sender)
+    }
 
   }
 
   when(Closed) {
 
-    case Event(command: Create, lunchData: LunchData) =>
-      WhenClosed.create(command, lunchData, sender)
+    inProgress orElse {
 
-    case Event(command: Finish, lunchData: LunchData) =>
-      WhenClosed.finish(command, lunchData, sender)
+      case Event(Close(caller), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          sender ! SimpleMessage(messages[Close].alreadyClosed, Failure)
+          stay
+        }
 
-    case Event(command: Close, lunchData: LunchData) =>
-      WhenClosed.close(command, lunchData, sender)
+      case Event(Open(caller), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          sender ! SimpleMessage(messages[Open].opened(data.place), Success)
+          goto(InProgress)
+        }
 
-    case Event(command: Open, lunchData: LunchData) =>
-      WhenClosed.open(command, lunchData, sender)
+      case Event(Poke(caller), data: LunchData) =>
+        lunchmasterOnly(caller, data) {
+          val slack = sender
+          fanIn[OutboundMessage](data.eaters, Poke.Pay(caller))
+            .map(MessageBundle)
+            .map(slack ! _)
+          stay
+        }
 
-    case Event(command: Poke, lunchData: LunchData) =>
-      WhenClosed.poke(command, lunchData, sender)
+      case Event(_, _) =>
+        sender ! SimpleMessage(messages[Unhandled].closed, Failure)
+        stay
 
-    case Event(command: Kick, lunchData: LunchData) =>
-      WhenClosed.kick(command, lunchData, sender)
-
-    case Event(command: Pay, lunchData: LunchData) =>
-      WhenClosed.pay(command, lunchData, sender)
-
-    case Event(command: Summary, lunchData: LunchData) =>
-      WhenClosed.summary(command, lunchData, sender)
-
-    case Event(_, _) =>
-      WhenClosed.unhandled(sender)
+    }
 
   }
 
@@ -114,250 +221,6 @@ class LunchActor(val messagesService: MessagesService)
   }
 
   initialize
-
-  import messagesService._
-
-  trait WhenIdle {
-
-    def create(command: Create, sender: ActorRef): State = {
-      val formattedPlace = formatUrl(command.place)
-
-      val message = messages[Create].created(formattedPlace, formatMention(command.caller))
-
-      sender ! HereMessage(message, Success)
-
-      goto(InProgress) using LunchData(command.caller, formattedPlace, Nil)
-    }
-
-    def unhandled(sender: ActorRef): State = {
-      sender ! SimpleMessage(messages[Unhandled].noLunch, Failure)
-
-      stay
-    }
-
-  }
-
-  object WhenIdle extends WhenIdle
-
-  trait WhenInProgress {
-
-    def create(command: Create, data: LunchData, sender: ActorRef): State = {
-      sender ! SimpleMessage(messages[Create].alreadyRunning(formatUrl(data.place), formatMention(data.lunchmaster)), Failure)
-
-      stay
-    }
-
-    def finish(command: Finish, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        data.eaters.flatMap(context.child).foreach(_ ! PoisonPill)
-
-        sender ! SimpleMessage(messages[Finish].finished, Success)
-
-        goto(Idle) using Empty
-      }
-    }
-
-    def poke(command: Poke, data: LunchData, sender: ActorRef): State = {
-      val slack = sender
-
-      lunchmasterOnly(command, data) {
-        fanIn[OutboundMessage](data.eaters, command)
-          .map(MessageBundle)
-          .map(slack ! _)
-
-        stay
-      }
-    }
-
-    def kick(command: Kick, data: LunchData, sender: ActorRef): State = lunchmasterOnly(command, data) {
-      if (data.eaters.contains(command.kicked)) {
-
-        sender ! SimpleMessage(messages[Kick].kicked(formatMention(command.kicked)), Success)
-
-        context.child(command.kicked).foreach(_ ! PoisonPill)
-
-        stay using data.removeEater(command.kicked)
-
-      } else {
-
-        sender ! SimpleMessage(messages[Kick].notJoined, Failure)
-
-        stay
-
-      }
-    }
-
-    def summary(command: Summary, data: LunchData, sender: ActorRef): State = {
-      val slack = sender
-
-      val headerMessage = messages[Summary].header(data.place, formatMention(data.lunchmaster))
-
-      fanIn[EaterReport](data.eaters, command)
-        .map { reports =>
-          val stateMessages = reports.groupBy(_.state) map {
-            case (Joined, reportsByState)     =>
-              messages[Summary].joined(reportsByState.size)
-            case (FoodChosen, reportsByState) =>
-              messages[Summary].chosen(reportsByState.size)
-            case (Paid, reportsByState)       =>
-              messages[Summary].paid(reportsByState.size)
-          }
-
-          val totalFoods = reports.map(_.data).map {
-            case FoodData(food) => Some(food)
-            case _              => None
-          }
-
-          val totalFoodsMessage = totalFoods.flatten match {
-            case Nil   => messages[Summary].nobodyChosen
-            case foods =>
-              val foodsWithCounts = foods.map(f => (f, foods.count(_ == f))).distinct
-
-              val orderContents = foodsWithCounts.map(f => s"• ${f._1} [x${f._2}]").mkString("\n")
-
-              messages[Summary].currentOrder(orderContents)
-          }
-
-          val summaryMessage = (headerMessage +: stateMessages.toSeq :+ totalFoodsMessage).mkString("\n")
-
-          slack ! SimpleMessage(summaryMessage, Success)
-        }
-
-      stay
-    }
-
-    def join(command: Join, data: LunchData, sender: ActorRef): State = {
-      if (data.eaters.contains(command.caller)) {
-
-        sender ! MentionMessage(messages[Join].alreadyJoined, command.caller, Failure)
-
-        stay using data
-
-      } else {
-
-        sender ! ReactionMessage(Success)
-
-        context.actorOf(EaterActor.props(command.caller, messagesService), command.caller)
-
-        stay using data.withEater(command.caller)
-
-      }
-    }
-
-    def leave(command: Leave, data: LunchData, sender: ActorRef): State = {
-      if (data.eaters.contains(command.caller)) {
-
-        sender ! ReactionMessage(Success)
-
-        context.child(command.caller).foreach(_ ! PoisonPill)
-
-        stay using data.removeEater(command.caller)
-
-      } else {
-
-        sender ! MentionMessage(messages[Leave].notJoined(data.place), command.caller, Failure)
-
-        stay using data
-
-      }
-    }
-
-    def choose(command: Choose, data: LunchData, sender: ActorRef): State = {
-      context.child(command.caller) match {
-        case Some(eaterActor) =>
-          (eaterActor ? command).pipeTo(sender)
-        case None             =>
-          sender ! MentionMessage(messages[Choose].notJoined, command.caller, Failure)
-      }
-
-      stay
-    }
-
-    def pay(command: Pay, data: LunchData, sender: ActorRef): State = {
-      context.child(command.caller) match {
-        case Some(eaterActor) =>
-          (eaterActor ? command).pipeTo(sender)
-        case None             =>
-          MentionMessage(messages[Pay].notJoined, command.caller, Failure)
-      }
-
-      stay
-    }
-
-    def close(command: Close, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        val currentState = stateName
-
-        val joinedOnly = fanIn[EaterReport](data.eaters, Summary(command.caller)) map { reports =>
-          reports.filter(_.state == EaterActor.Joined)
-        }
-
-        joinedOnly map {
-          case Nil =>
-            sender ! HereMessage(messages[Close].closed, Success)
-
-            self ! Closed
-          case _   =>
-            sender ! SimpleMessage(messages[Close].someNotChosen, Failure)
-
-            self ! currentState
-        }
-
-        goto(WaitingForState) using data
-      }
-    }
-
-    def open(command: Open, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        sender ! SimpleMessage(messages[Open].alreadyOpen, Failure)
-
-        stay
-      }
-    }
-
-  }
-
-  object WhenInProgress extends WhenInProgress
-
-  trait WhenClosed extends WhenInProgress {
-
-    override def close(command: Close, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        sender ! SimpleMessage(messages[Close].alreadyClosed, Failure)
-
-        stay
-      }
-    }
-
-    override def open(command: Open, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        sender ! SimpleMessage(messages[Open].opened(data.place), Success)
-
-        goto(InProgress)
-      }
-    }
-
-    override def poke(command: Poke, data: LunchData, sender: ActorRef): State = {
-      val slack = sender
-
-      lunchmasterOnly(command, data) {
-        fanIn[OutboundMessage](data.eaters, Poke.Pay(command.caller))
-          .map(MessageBundle)
-          .map(slack ! _)
-
-        stay
-      }
-    }
-
-    def unhandled(sender: ActorRef): State = {
-      sender ! SimpleMessage(messages[Unhandled].closed, Failure)
-
-      stay
-    }
-
-  }
-
-  object WhenClosed extends WhenClosed
 
   private def fanIn[T](actorNames: Seq[String], command: Command)(implicit tag: ClassTag[T]): Future[Seq[T]] = {
     val actors = actorNames.flatMap(context.child)
@@ -372,8 +235,8 @@ class LunchActor(val messagesService: MessagesService)
     ).map(_.flatten.toSeq)
   }
 
-  private def lunchmasterOnly(command: Command, data: LunchData)(authorised: => State): State = {
-    if (command.caller == data.lunchmaster) {
+  private def lunchmasterOnly(caller: UserId, data: LunchData)(authorised: => State): State = {
+    if (caller == data.lunchmaster) {
       authorised
     } else {
       sender ! SimpleMessage(messages[Unhandled].lunchmasterOnly, Failure)
