@@ -20,8 +20,7 @@ libraryDependencies ++= {
   Seq(
     "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
     "com.iheart" %% "ficus" % Versions.ficus,
-    "com.h2database" % "h2" % "1.4.193",
-    "io.getquill" %% "quill-jdbc" % "1.0.1",
+    "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
     "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
   ) ++
     Seq(

@@ -4,10 +4,8 @@ import akka.actor.ActorSystem
 import com.softwaremill.macwire._
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
-import repository.LunchmasterRepository
 import service.{LunchbotService, MessagesService, StatisticsService}
 import slack.rtm.SlackRtmClient
-import sql.JdbcConnection
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -25,10 +23,6 @@ class Application()(implicit actorSystem: ActorSystem)
 
   lazy val messagesService: MessagesService = wire[MessagesService]
 
-  lazy val jdbcConnection: JdbcConnection = wire[JdbcConnection]
-
-  lazy val lunchmasterRepository: LunchmasterRepository = wire[LunchmasterRepository]
-
   lazy val statisticsService: StatisticsService = wire[StatisticsService]
 
   lazy val lunchbotService: LunchbotService = wire[LunchbotService]
@@ -39,7 +33,6 @@ class Application()(implicit actorSystem: ActorSystem)
 
   override def stop(): Unit = {
     lunchbotService.stop()
-    jdbcConnection.stop()
   }
 
 }
