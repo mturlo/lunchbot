@@ -33,7 +33,7 @@ class LunchActorSpec
     lunchActor ! Create(lunchmaster1, place1)
 
     lunchActor.stateName mustBe InProgress
-    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
+    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Nil)
 
     expectSuccess[HereMessage]
 
@@ -42,7 +42,7 @@ class LunchActorSpec
     lunchActor ! Create(lunchmaster1, place1)
 
     lunchActor.stateName mustBe InProgress
-    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
+    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Nil)
 
     expectFailure[SimpleMessage]
 
@@ -72,7 +72,7 @@ class LunchActorSpec
     lunchActor ! Create(lunchmaster2, place2)
 
     lunchActor.stateName mustBe InProgress
-    lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
+    lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Nil)
 
     expectSuccess[HereMessage]
 
@@ -81,7 +81,7 @@ class LunchActorSpec
     lunchActor ! Finish(lunchmaster1)
 
     lunchActor.stateName mustBe InProgress
-    lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Map.empty)
+    lunchActor.stateData mustBe LunchData(lunchmaster2, place2, Nil)
 
     expectFailure[SimpleMessage]
 
@@ -102,7 +102,7 @@ class LunchActorSpec
     lunchActor ! Create(lunchmaster1, place1)
 
     lunchActor.stateName mustBe InProgress
-    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Map.empty)
+    lunchActor.stateData mustBe LunchData(lunchmaster1, place1, Nil)
 
     expectSuccess[HereMessage]
 
@@ -116,7 +116,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe a[LunchData]
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
-    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater1)
 
     expectSuccess[ReactionMessage]
 
@@ -127,7 +127,7 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe a[LunchData]
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
-    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater1)
 
     expectFailure[MentionMessage]
 
@@ -138,8 +138,8 @@ class LunchActorSpec
     lunchActor.stateName mustBe InProgress
     lunchActor.stateData mustBe a[LunchData]
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
-    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater1
-    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain key eater2
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater1)
+    lunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater2)
 
     expectSuccess[ReactionMessage]
 

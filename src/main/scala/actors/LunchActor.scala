@@ -126,7 +126,7 @@ class LunchActor(val messagesService: MessagesService)
 
       sender ! HereMessage(message, Success)
 
-      goto(InProgress) using LunchData(command.caller, formattedPlace, Map.empty)
+      goto(InProgress) using LunchData(command.caller, formattedPlace, Nil)
     }
 
     def unhandled(sender: ActorRef): State = {
@@ -149,7 +149,7 @@ class LunchActor(val messagesService: MessagesService)
 
     def finish(command: Finish, data: LunchData, sender: ActorRef): State = {
       lunchmasterOnly(command, data) {
-        data.eaters.values foreach (_ ! PoisonPill)
+        data.eaters.flatMap(context.child).foreach(_ ! PoisonPill)
 
         sender ! SimpleMessage(messages[Finish].finished, Success)
 
@@ -161,7 +161,7 @@ class LunchActor(val messagesService: MessagesService)
       val slack = sender
 
       lunchmasterOnly(command, data) {
-        fanIn[OutboundMessage](data.eaters.values.toSeq, command)
+        fanIn[OutboundMessage](data.eaters, command)
           .map(MessageBundle)
           .map(slack ! _)
 
@@ -169,20 +169,21 @@ class LunchActor(val messagesService: MessagesService)
       }
     }
 
-    def kick(command: Kick, data: LunchData, sender: ActorRef): State = {
-      lunchmasterOnly(command, data) {
-        data.eaters.get(command.kicked) match {
-          case Some(eater) =>
-            sender ! SimpleMessage(messages[Kick].kicked(formatMention(command.kicked)), Success)
+    def kick(command: Kick, data: LunchData, sender: ActorRef): State = lunchmasterOnly(command, data) {
+      if (data.eaters.contains(command.kicked)) {
 
-            eater ! PoisonPill
+        sender ! SimpleMessage(messages[Kick].kicked(formatMention(command.kicked)), Success)
 
-            stay using data.removeEater(command.kicked)
-          case None        =>
-            sender ! SimpleMessage(messages[Kick].notJoined, Failure)
+        context.child(command.kicked).foreach(_ ! PoisonPill)
 
-            stay
-        }
+        stay using data.removeEater(command.kicked)
+
+      } else {
+
+        sender ! SimpleMessage(messages[Kick].notJoined, Failure)
+
+        stay
+
       }
     }
 
@@ -191,7 +192,7 @@ class LunchActor(val messagesService: MessagesService)
 
       val headerMessage = messages[Summary].header(data.place, formatMention(data.lunchmaster))
 
-      fanIn[EaterReport](data.eaters.values.toSeq, command)
+      fanIn[EaterReport](data.eaters, command)
         .map { reports =>
           val stateMessages = reports.groupBy(_.state) map {
             case (Joined, reportsByState)     =>
@@ -226,35 +227,43 @@ class LunchActor(val messagesService: MessagesService)
     }
 
     def join(command: Join, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.caller) match {
-        case Some(_) =>
-          sender ! MentionMessage(messages[Join].alreadyJoined, command.caller, Failure)
+      if (data.eaters.contains(command.caller)) {
 
-          stay using data
-        case None    =>
-          sender ! ReactionMessage(Success)
+        sender ! MentionMessage(messages[Join].alreadyJoined, command.caller, Failure)
 
-          stay using data.withEater(command.caller, context.actorOf(EaterActor.props(command.caller, messagesService), command.caller))
+        stay using data
+
+      } else {
+
+        sender ! ReactionMessage(Success)
+
+        context.actorOf(EaterActor.props(command.caller, messagesService), command.caller)
+
+        stay using data.withEater(command.caller)
+
       }
     }
 
     def leave(command: Leave, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.caller) match {
-        case Some(eater) =>
-          sender ! ReactionMessage(Success)
+      if (data.eaters.contains(command.caller)) {
 
-          eater ! PoisonPill
+        sender ! ReactionMessage(Success)
 
-          stay using data.removeEater(command.caller)
-        case None        =>
-          sender ! MentionMessage(messages[Leave].notJoined(data.place), command.caller, Failure)
+        context.child(command.caller).foreach(_ ! PoisonPill)
 
-          stay using data
+        stay using data.removeEater(command.caller)
+
+      } else {
+
+        sender ! MentionMessage(messages[Leave].notJoined(data.place), command.caller, Failure)
+
+        stay using data
+
       }
     }
 
     def choose(command: Choose, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.caller) match {
+      context.child(command.caller) match {
         case Some(eaterActor) =>
           (eaterActor ? command).pipeTo(sender)
         case None             =>
@@ -265,7 +274,7 @@ class LunchActor(val messagesService: MessagesService)
     }
 
     def pay(command: Pay, data: LunchData, sender: ActorRef): State = {
-      data.eaters.get(command.caller) match {
+      context.child(command.caller) match {
         case Some(eaterActor) =>
           (eaterActor ? command).pipeTo(sender)
         case None             =>
@@ -279,7 +288,7 @@ class LunchActor(val messagesService: MessagesService)
       lunchmasterOnly(command, data) {
         val currentState = stateName
 
-        val joinedOnly = fanIn[EaterReport](data.eaters.values.toSeq, Summary(command.caller)) map { reports =>
+        val joinedOnly = fanIn[EaterReport](data.eaters, Summary(command.caller)) map { reports =>
           reports.filter(_.state == EaterActor.Joined)
         }
 
@@ -332,7 +341,7 @@ class LunchActor(val messagesService: MessagesService)
       val slack = sender
 
       lunchmasterOnly(command, data) {
-        fanIn[OutboundMessage](data.eaters.values.toSeq, Poke.Pay(command.caller))
+        fanIn[OutboundMessage](data.eaters, Poke.Pay(command.caller))
           .map(MessageBundle)
           .map(slack ! _)
 
@@ -350,7 +359,8 @@ class LunchActor(val messagesService: MessagesService)
 
   object WhenClosed extends WhenClosed
 
-  private def fanIn[T](actors: Seq[ActorRef], command: Command)(implicit tag: ClassTag[T]): Future[Seq[T]] = {
+  private def fanIn[T](actorNames: Seq[String], command: Command)(implicit tag: ClassTag[T]): Future[Seq[T]] = {
+    val actors = actorNames.flatMap(context.child)
     sequence(
       actors
         .map(_ ? command)
@@ -359,7 +369,7 @@ class LunchActor(val messagesService: MessagesService)
             .map(Some(_))
             .recover(PartialFunction(_ => None))
         )
-    ).map(_.flatten)
+    ).map(_.flatten.toSeq)
   }
 
   private def lunchmasterOnly(command: Command, data: LunchData)(authorised: => State): State = {
@@ -389,14 +399,14 @@ object LunchActor {
 
   case object Empty extends Data
 
-  case class LunchData(lunchmaster: UserId, place: String, eaters: Map[UserId, ActorRef]) extends Data {
+  case class LunchData(lunchmaster: UserId, place: String, eaters: Seq[UserId]) extends Data {
 
-    def withEater(eaterId: UserId, eaterActor: ActorRef): LunchData = {
-      copy(eaters = eaters + (eaterId -> eaterActor))
+    def withEater(eaterId: UserId): LunchData = {
+      copy(eaters = eaters :+ eaterId)
     }
 
     def removeEater(eaterId: UserId): LunchData = {
-      copy(eaters = eaters - eaterId)
+      copy(eaters = eaters.filterNot(_ == eaterId))
     }
 
   }
