@@ -2,11 +2,12 @@ package actors
 
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
+import actors.TestablePersistentFSM.getInternalsOf
+import akka.actor.{ActorRef, ActorSystem}
+import akka.testkit.{ImplicitSender, TestKit}
 import application.TestApplicationSpec
 import commands._
-import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
 class LunchActorSpec
@@ -14,13 +15,22 @@ class LunchActorSpec
     with ImplicitSender
     with FlatSpecLike
     with MustMatchers
+    with ScalaFutures
     with Eventually
     with MessageAssertions
     with TestApplicationSpec {
 
+  implicit class LunchActorRef(internal: ActorRef) {
+
+    def stateName: State = getInternalsOf[State, Data](internal).futureValue.state
+
+    def stateData: Data = getInternalsOf[State, Data](internal).futureValue.data
+
+  }
+
   it should "process lunch creation and finishing" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -89,7 +99,7 @@ class LunchActorSpec
 
   it should "process eater joins" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     lunchActor.stateName mustBe Idle
     lunchActor.stateData mustBe Empty
@@ -147,7 +157,7 @@ class LunchActorSpec
 
   it should "process eater leaves" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -194,7 +204,7 @@ class LunchActorSpec
 
   it should "poke eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -283,7 +293,7 @@ class LunchActorSpec
 
   it should "kick eaters" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -333,7 +343,7 @@ class LunchActorSpec
 
   it should "close lunch order" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"
@@ -399,7 +409,7 @@ class LunchActorSpec
 
   it should "open a closed lunch" in {
 
-    val lunchActor = TestFSMRef(new LunchActor(testApp.messagesService))
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val lunchmaster = "some_lunchmaster"
     val place = "some_place"

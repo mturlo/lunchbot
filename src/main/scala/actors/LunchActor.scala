@@ -3,8 +3,10 @@ package actors
 import actors.EaterActor.{FoodChosen, FoodData, Joined, Paid}
 import actors.LunchActor._
 import actors.LunchbotActor._
-import akka.actor.{FSM, PoisonPill, Props}
+import akka.actor.{PoisonPill, Props}
 import akka.pattern._
+import akka.persistence.fsm.PersistentFSM
+import akka.persistence.fsm.PersistentFSM.FSMState
 import akka.util.Timeout
 import commands._
 import model.Statuses.{Failure, Success}
@@ -15,10 +17,11 @@ import util.{Formatting, Logging}
 import scala.concurrent.Future.sequence
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.ClassTag
+import scala.reflect._
 
 class LunchActor(val messagesService: MessagesService)
-  extends FSM[State, Data]
+  extends PersistentFSM[State, Data, LunchEvent]
+    with TestablePersistentFSM[State, Data, LunchEvent]
     with Logging
     with Formatting {
 
@@ -33,11 +36,12 @@ class LunchActor(val messagesService: MessagesService)
 
     case Event(Create(caller, place), Empty) =>
       val formattedPlace = formatUrl(place)
-      val message = messages[Create].created(formattedPlace, formatMention(caller))
-      sender ! HereMessage(message, Success)
-      goto(InProgress) using LunchData(caller, formattedPlace, Nil)
+      goto(InProgress) applying LunchCreated(caller, place) andThen { _ =>
+        val message = messages[Create].created(formattedPlace, formatMention(caller))
+        sender ! HereMessage(message, Success)
+      }
 
-    case Event(_, _) =>
+    case Event(_ : Command, _) =>
       sender ! SimpleMessage(messages[Unhandled].noLunch, Failure)
       stay
 
@@ -52,17 +56,19 @@ class LunchActor(val messagesService: MessagesService)
     case Event(command @ Pay(caller), _) =>
       context.child(caller) match {
         case Some(eaterActor) =>
-          (eaterActor ? command).pipeTo(sender)
+          stay applying EaterPaid(caller) andThen { _ =>
+            (eaterActor ? command).pipeTo(sender)
+          }
         case None             =>
           MentionMessage(messages[Pay].notJoined, caller, Failure)
+          stay
       }
-      stay
 
     case Event(Finish(caller), data: LunchData) =>
       lunchmasterOnly(caller, data) {
-        data.eaters.flatMap(context.child).foreach(_ ! PoisonPill)
-        sender ! SimpleMessage(messages[Finish].finished, Success)
-        goto(Idle) using Empty
+        goto(Idle) applying LunchFinished andThen { _ =>
+          sender ! SimpleMessage(messages[Finish].finished, Success)
+        }
       }
 
     case Event(command: Summary, data: LunchData) =>
@@ -103,31 +109,33 @@ class LunchActor(val messagesService: MessagesService)
       case Event(Join(caller), data: LunchData) =>
         if (data.eaters.contains(caller)) {
           sender ! MentionMessage(messages[Join].alreadyJoined, caller, Failure)
-          stay using data
+          stay
         } else {
-          sender ! ReactionMessage(Success)
-          context.actorOf(EaterActor.props(caller, messagesService), caller)
-          stay using data.withEater(caller)
+          stay applying EaterAdded(caller) andThen { _ =>
+            sender ! ReactionMessage(Success)
+          }
         }
 
       case Event(Leave(caller), data: LunchData) =>
         if (data.eaters.contains(caller)) {
-          sender ! ReactionMessage(Success)
-          context.child(caller).foreach(_ ! PoisonPill)
-          stay using data.removeEater(caller)
+          stay applying EaterRemoved(caller) andThen { _ =>
+            sender ! ReactionMessage(Success)
+          }
         } else {
           sender ! MentionMessage(messages[Leave].notJoined(data.place), caller, Failure)
-          stay using data
+          stay
         }
 
-      case Event(command @ Choose(caller, _), _) =>
+      case Event(command @ Choose(caller, food), _) =>
         context.child(caller) match {
           case Some(eaterActor) =>
-            (eaterActor ? command).pipeTo(sender)
+            stay applying EaterFoodChosen(caller, food) andThen { _ =>
+              (eaterActor ? command).pipeTo(sender)
+            }
           case None             =>
             sender ! MentionMessage(messages[Choose].notJoined, caller, Failure)
+            stay
         }
-        stay
 
       case Event(Close(caller), data: LunchData) =>
         val slack = sender()
@@ -144,7 +152,7 @@ class LunchActor(val messagesService: MessagesService)
               slack ! SimpleMessage(messages[Close].someNotChosen, Failure)
               self ! currentState
           }
-          goto(WaitingForState) using data
+          goto(WaitingForState)
         }
 
       case Event(Open(caller), data: LunchData) =>
@@ -165,13 +173,12 @@ class LunchActor(val messagesService: MessagesService)
       case Event(Kick(caller, kicked), data: LunchData) =>
         lunchmasterOnly(caller, data) {
           if (data.eaters.contains(kicked)) {
-            sender ! SimpleMessage(messages[Kick].kicked(formatMention(kicked)), Success)
-            context.child(kicked).foreach(_ ! PoisonPill)
-            stay using data.removeEater(kicked)
+            stay applying EaterRemoved(kicked) andThen { _ =>
+              sender ! SimpleMessage(messages[Kick].kicked(formatMention(kicked)), Success)
+            }
           } else {
             sender ! SimpleMessage(messages[Kick].notJoined, Failure)
             stay
-
           }
         }
 
@@ -204,7 +211,7 @@ class LunchActor(val messagesService: MessagesService)
           stay
         }
 
-      case Event(_, _) =>
+      case Event(_ : Command, _) =>
         sender ! SimpleMessage(messages[Unhandled].closed, Failure)
         stay
 
@@ -220,7 +227,37 @@ class LunchActor(val messagesService: MessagesService)
 
   }
 
-  initialize
+  // akka persistence stuff
+
+  override def domainEventClassTag: ClassTag[LunchEvent] = classTag[LunchEvent]
+
+  override def persistenceId: String = getClass.getSimpleName
+
+  override def applyEvent(domainEvent: LunchEvent, currentData: Data): Data = {
+    logger.debug(s"applying event $domainEvent to data: $currentData")
+    domainEvent match {
+      case LunchCreated(lunchmaster, place) =>
+        val formattedPlace = formatUrl(place)
+        LunchData(lunchmaster, formattedPlace, Nil)
+      case LunchFinished                    =>
+        currentData.eaters.flatMap(context.child).foreach(_ ! PoisonPill)
+        Empty
+      case EaterAdded(eater)                =>
+        context.actorOf(EaterActor.props(eater, messagesService), eater)
+        currentData.withEater(eater)
+      case EaterRemoved(eater)              =>
+        context.child(eater).foreach(_ ! PoisonPill)
+        currentData.removeEater(eater)
+      case EaterFoodChosen(eater, food)     =>
+        context.child(eater) foreach (_ ! Choose(eater, food))
+        currentData
+      case EaterPaid(eater)                 =>
+        context.child(eater) foreach (_ ! Pay(eater))
+        currentData
+    }
+  }
+
+  // utils
 
   private def fanIn[T](actorNames: Seq[String], command: Command)(implicit tag: ClassTag[T]): Future[Seq[T]] = {
     val actors = actorNames.flatMap(context.child)
@@ -248,31 +285,70 @@ class LunchActor(val messagesService: MessagesService)
 
 object LunchActor {
 
-  sealed trait State
+  sealed trait State extends FSMState
 
-  case object Idle extends State
+  case object Idle extends State {
+    override def identifier: String = "Idle"
+  }
 
-  case object InProgress extends State
+  case object InProgress extends State {
+    override def identifier: String = "InProgress"
+  }
 
-  case object Closed extends State
+  case object Closed extends State {
+    override def identifier: String = "Closed"
+  }
 
-  case object WaitingForState extends State
+  case object WaitingForState extends State {
+    override def identifier: String = "WaitingForState"
+  }
 
-  sealed trait Data
+  sealed trait Data {
 
-  case object Empty extends Data
+    def eaters: Seq[UserId]
+
+    def withEater(eaterId: UserId): Data
+
+    def removeEater(eaterId: UserId): Data
+
+  }
+
+  case object Empty extends Data {
+
+    override def eaters: Seq[UserId] = Nil
+
+    override def withEater(eaterId: UserId): Data = Empty
+
+    override def removeEater(eaterId: UserId): Data = Empty
+
+  }
 
   case class LunchData(lunchmaster: UserId, place: String, eaters: Seq[UserId]) extends Data {
 
-    def withEater(eaterId: UserId): LunchData = {
+    def withEater(eaterId: UserId): Data = {
       copy(eaters = eaters :+ eaterId)
     }
 
-    def removeEater(eaterId: UserId): LunchData = {
+    def removeEater(eaterId: UserId): Data = {
       copy(eaters = eaters.filterNot(_ == eaterId))
     }
 
   }
+
+  sealed trait LunchEvent
+
+  case class LunchCreated(lunchmaster: UserId, place: String) extends LunchEvent
+
+  case object LunchFinished extends LunchEvent
+
+  case class EaterAdded(eater: UserId) extends LunchEvent
+
+  case class EaterRemoved(eater: UserId) extends LunchEvent
+
+  case class EaterFoodChosen(eater: UserId, food: String) extends LunchEvent
+
+  case class EaterPaid(eater: UserId) extends LunchEvent
+
 
   case class EaterReport(eaterId: UserId, state: EaterActor.State, data: EaterActor.Data)
 
