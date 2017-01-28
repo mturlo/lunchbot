@@ -22,6 +22,8 @@ libraryDependencies ++= {
     "com.iheart" %% "ficus" % Versions.ficus,
     "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
     "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.18",
+    "org.iq80.leveldb" % "leveldb" % "0.7",
+    "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
   ) ++
     Seq(
