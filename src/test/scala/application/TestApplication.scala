@@ -14,23 +14,21 @@ class TestApplication
 
   import Mockito._
 
-  lazy val mockSlackApi: BlockingSlackApiClient = mock[BlockingSlackApiClient]
+  override lazy val slackApiClient: BlockingSlackApiClient = mock[BlockingSlackApiClient]
 
   override lazy val slackRtmClient: SlackRtmClient = mock[SlackRtmClient]
-
-  when(slackRtmClient.apiClient).thenReturn(mockSlackApi)
 
   when(slackRtmClient.state).thenReturn {
     RtmState {
       RtmStartState(
-        null,
-        User("test_user_id", "test_user_name", None, None, None, None, None, None, None, None, None, None, None, None, None, None),
-        null,
-        Nil,
-        Nil,
-        Nil,
-        Nil,
-        Nil
+      null,
+      User("test_user_id", "test_user_name", None, None, None, None, None, None, None, None, None, None, None, None, None, None),
+      null,
+      Nil,
+      Nil,
+      Nil,
+      Nil,
+      Nil
       )
     }
   }

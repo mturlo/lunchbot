@@ -5,6 +5,7 @@ import com.softwaremill.macwire._
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import service.{LunchbotService, MessagesService, StatisticsService}
+import slack.api.BlockingSlackApiClient
 import slack.rtm.SlackRtmClient
 
 import scala.concurrent.duration.FiniteDuration
@@ -20,6 +21,8 @@ class Application()(implicit actorSystem: ActorSystem)
   val timeout: FiniteDuration = config.as[FiniteDuration]("slack.timeout")
 
   lazy val slackRtmClient: SlackRtmClient = SlackRtmClient(token, timeout)
+
+  lazy val slackApiClient: BlockingSlackApiClient = BlockingSlackApiClient(token, timeout)
 
   lazy val messagesService: MessagesService = wire[MessagesService]
 

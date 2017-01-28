@@ -1,24 +1,26 @@
 package service
 
+import akka.actor.ActorSystem
 import commands.Create
-import slack.rtm.SlackRtmClient
+import slack.api.BlockingSlackApiClient
 import util.Logging
 
 import scala.concurrent.ExecutionContext
 
 class StatisticsService(messagesService: MessagesService,
-                        slackRtmClient: SlackRtmClient)
+                        slackApiClient: BlockingSlackApiClient)
   extends Logging {
 
   import messagesService._
 
   def getLunchmasterStatistics(channel: String,
                                maxMessages: Option[Int] = None)
-                              (implicit executionContext: ExecutionContext): Map[String, Int] = {
+                              (implicit executionContext: ExecutionContext,
+                               actorSystem: ActorSystem): Map[String, Int] = {
 
     val createRegex = messages[Create].created.regex
 
-    val historyChunk = slackRtmClient.apiClient.getChannelHistory(channel, count = maxMessages)
+    val historyChunk = slackApiClient.getChannelHistory(channel, count = maxMessages)
 
     val createLunchMessages = historyChunk.messages.filter { jsMessage =>
       createRegex.findFirstIn((jsMessage \ "text").as[String]).isDefined
@@ -37,7 +39,8 @@ class StatisticsService(messagesService: MessagesService,
 
   def renderLunchmasterStatistics(channel: String,
                                   maxMessages: Option[Int] = None)
-                                 (implicit executionContext: ExecutionContext): String = {
+                                 (implicit executionContext: ExecutionContext,
+                                  actorSystem: ActorSystem): String = {
 
     val occurrenceMap = getLunchmasterStatistics(channel, maxMessages)
 

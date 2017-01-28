@@ -9,7 +9,7 @@ resolvers += Resolver.jcenterRepo
 libraryDependencies ++= {
 
   object Versions {
-    val slackScalaClient = "0.1.8"
+    val slackScalaClient = "0.2.0"
     val akka = "2.4.4"
     val ficus = "1.2.3"
 

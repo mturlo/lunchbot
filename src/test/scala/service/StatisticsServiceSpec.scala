@@ -1,17 +1,20 @@
 package service
 
+import akka.actor.ActorSystem
+import akka.testkit.TestKit
 import application.TestApplicationSpec
 import commands.Create
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{FlatSpec, MustMatchers}
+import org.scalatest.{FlatSpecLike, MustMatchers}
 import play.api.libs.json.{JsValue, Json}
 import slack.api.HistoryChunk
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class StatisticsServiceSpec
-  extends FlatSpec
+  extends TestKit(ActorSystem("StatisticsServiceSpec"))
+    with FlatSpecLike
     with MustMatchers
     with MockitoSugar
     with TestApplicationSpec {
@@ -48,7 +51,7 @@ class StatisticsServiceSpec
         ((1 to count3) map (_ => foo(lunchmaster3)))
     }
 
-    when(mockSlackApi.getChannelHistory(channel, count = Some(maxMessages)))
+    when(slackApiClient.getChannelHistory(channel, count = Some(maxMessages)))
       .thenReturn(HistoryChunk(None, historyMessages, has_more = false))
 
     statisticsService.getLunchmasterStatistics(channel, Some(maxMessages)) mustBe expected
