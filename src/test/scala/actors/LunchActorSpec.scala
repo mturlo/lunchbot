@@ -8,6 +8,7 @@ import akka.testkit.{ImplicitSender, TestKit}
 import application.TestApplicationSpec
 import commands._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.time.Span
 import org.scalatest.{FlatSpecLike, MustMatchers}
 
 class LunchActorSpec
@@ -18,9 +19,12 @@ class LunchActorSpec
     with ScalaFutures
     with Eventually
     with MessageAssertions
+    with InMemoryCleanup
     with TestApplicationSpec {
 
   implicit class LunchActorRef(internal: ActorRef) {
+
+    implicit val patienceConfig = PatienceConfig(Span.Max)
 
     def stateName: State = getInternalsOf[State, Data](internal).futureValue.state
 

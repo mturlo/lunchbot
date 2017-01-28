@@ -21,6 +21,7 @@ libraryDependencies ++= {
     "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
     "com.iheart" %% "ficus" % Versions.ficus,
     "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
+    "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.18",
     "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
   ) ++
     Seq(
