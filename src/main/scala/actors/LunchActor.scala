@@ -53,12 +53,10 @@ class LunchActor(val messagesService: MessagesService)
       sender ! SimpleMessage(messages[Create].alreadyRunning(formatUrl(data.place), formatMention(data.lunchmaster)), Failure)
       stay
 
-    case Event(command @ Pay(caller), _) =>
+    case Event(Pay(caller), _) =>
       context.child(caller) match {
-        case Some(eaterActor) =>
-          stay applying EaterPaid(caller) andThen { _ =>
-            (eaterActor ? command).pipeTo(sender)
-          }
+        case Some(_) =>
+          stay applying EaterPaid(caller)
         case None             =>
           MentionMessage(messages[Pay].notJoined, caller, Failure)
           stay
@@ -252,7 +250,9 @@ class LunchActor(val messagesService: MessagesService)
         context.child(eater) foreach (_ ! Choose(eater, food))
         currentData
       case EaterPaid(eater)                 =>
-        context.child(eater) foreach (_ ! Pay(eater))
+        context.child(eater) foreach { eaterActor =>
+          (eaterActor ? Pay(eater)).pipeTo(sender)
+        }
         currentData
     }
   }
