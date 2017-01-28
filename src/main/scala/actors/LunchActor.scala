@@ -58,7 +58,7 @@ class LunchActor(val messagesService: MessagesService)
         case Some(_) =>
           stay applying EaterPaid(caller)
         case None             =>
-          MentionMessage(messages[Pay].notJoined, caller, Failure)
+          sender ! MentionMessage(messages[Pay].notJoined, caller, Failure)
           stay
       }
 
