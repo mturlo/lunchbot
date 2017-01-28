@@ -3,13 +3,15 @@ package actors
 import actors.LunchActor._
 import actors.LunchbotActor._
 import actors.TestablePersistentFSM.getInternalsOf
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.testkit.{ImplicitSender, TestKit}
 import application.TestApplicationSpec
 import commands._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.Span
 import org.scalatest.{FlatSpecLike, MustMatchers}
+
+import scala.concurrent.duration._
 
 class LunchActorSpec
   extends TestKit(ActorSystem("LunchActorSpec"))
@@ -24,7 +26,7 @@ class LunchActorSpec
 
   implicit class LunchActorRef(internal: ActorRef) {
 
-    implicit val patienceConfig = PatienceConfig(Span.Max)
+    implicit val patienceConfig = PatienceConfig(Span.convertDurationToSpan(1 second))
 
     def stateName: State = getInternalsOf[State, Data](internal).futureValue.state
 
@@ -99,6 +101,15 @@ class LunchActorSpec
 
     expectFailure[SimpleMessage]
 
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateName mustBe InProgress
+    newLunchActor.stateData mustBe LunchData(lunchmaster2, place2, Nil)
+
   }
 
   it should "process eater joins" in {
@@ -157,6 +168,18 @@ class LunchActorSpec
 
     expectSuccess[ReactionMessage]
 
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateName mustBe InProgress
+    newLunchActor.stateData mustBe a[LunchData]
+    newLunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
+    newLunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater1)
+    newLunchActor.stateData.asInstanceOf[LunchData].eaters must contain(eater2)
+
   }
 
   it should "process eater leaves" in {
@@ -203,6 +226,14 @@ class LunchActorSpec
     expectFailure[MentionMessage]
 
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
+
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateData.asInstanceOf[LunchData].eaters must have size 2
 
   }
 
@@ -293,6 +324,18 @@ class LunchActorSpec
       case MessageBundle(messages) => messages must have size 2
     }
 
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor ! Poke(lunchmaster)
+
+    expectMsgPF() {
+      case MessageBundle(messages) => messages must have size 2
+    }
+
   }
 
   it should "kick eaters" in {
@@ -342,6 +385,14 @@ class LunchActorSpec
     expectFailure[SimpleMessage]
 
     lunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
+
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateData.asInstanceOf[LunchData].eaters must have size 1
 
   }
 
@@ -409,6 +460,14 @@ class LunchActorSpec
 
     lunchActor.stateName mustBe Closed
 
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateName mustBe Closed
+
   }
 
   it should "open a closed lunch" in {
@@ -456,6 +515,14 @@ class LunchActorSpec
     expectFailure[SimpleMessage]
 
     lunchActor.stateName mustBe InProgress
+
+    // finally, testing persistence replay
+
+    lunchActor ! PoisonPill
+
+    val newLunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    newLunchActor.stateName mustBe InProgress
 
   }
 
