@@ -65,6 +65,7 @@ class LunchActor(val messagesService: MessagesService)
     case Event(Finish(caller), data: LunchData) =>
       lunchmasterOnly(caller, data) {
         goto(Idle) applying LunchFinished andThen { _ =>
+          saveStateSnapshot
           sender ! SimpleMessage(messages[Finish].finished, Success)
         }
       }
