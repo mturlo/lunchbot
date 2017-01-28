@@ -526,4 +526,25 @@ class LunchActorSpec
 
   }
 
+  it should "not allow to pay before joining" in {
+
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
+
+    val lunchmaster = "some_lunchmaster"
+    val place = "some_place"
+
+    // lunchmaster creates lunch
+
+    lunchActor ! Create(lunchmaster, place)
+
+    expectSuccess[HereMessage]
+
+    val eater = "some_eater"
+
+    lunchActor ! Pay(eater)
+
+    expectFailure[MentionMessage]
+
+  }
+
 }
