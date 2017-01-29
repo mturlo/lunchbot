@@ -1,6 +1,6 @@
 name := "lunchbot"
 
-version := "0.5.0-SNAPSHOT"
+version := "0.6.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
