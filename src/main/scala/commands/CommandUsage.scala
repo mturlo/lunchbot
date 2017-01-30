@@ -3,9 +3,6 @@ package commands
 import model.UserId
 import util.Formatting
 
-/**
-  * Created by mactur on 05/10/2016.
-  */
 trait CommandUsage {
 
   self: Formatting =>
@@ -14,7 +11,7 @@ trait CommandUsage {
 
     val header = s"usage: ${formatMention(selfId)} `[command]` `[args...]`"
 
-    val commands = allCommands.map {
+    val commands = Commands.allCommands.map {
 
       case oneArg: OneArgCommand =>
         s"• `${oneArg.name}` `<${oneArg.argName}>` - ${oneArg.description}"

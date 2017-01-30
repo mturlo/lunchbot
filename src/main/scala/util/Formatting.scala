@@ -3,9 +3,6 @@ package util
 import model.Statuses.Status
 import model._
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 trait Formatting {
 
   protected def formatMention(userId: UserId): String = s"<@$userId>"

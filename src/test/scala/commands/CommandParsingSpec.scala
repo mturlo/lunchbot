@@ -4,9 +4,6 @@ import model.UserId
 import org.scalatest.{Assertion, FlatSpec, MustMatchers}
 import slack.models.Message
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
 class CommandParsingSpec extends FlatSpec with MustMatchers {
 
   val testUser: UserId = "test_user"
@@ -16,7 +13,7 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   }
 
   it should "parse all commands" in new CommandParsing {
-    allCommands foreach {
+    Commands.allCommands foreach {
       case oneArg: OneArgCommand => assertOneArgCommand(oneArg.name, oneArg.apply, parse)
       case noArg: NoArgCommand => assertNoArgCommand(noArg.name, noArg.apply, parse)
     }

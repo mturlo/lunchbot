@@ -1,8 +1,5 @@
 package model
 
-/**
-  * Created by mactur on 09/10/2016.
-  */
 object Statuses extends Enumeration {
 
   type Status = Value

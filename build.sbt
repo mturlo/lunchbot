@@ -1,21 +1,30 @@
 name := "lunchbot"
 
-version := "0.4.0"
+version := "0.5.0"
 
 scalaVersion := "2.11.8"
+
+resolvers += Resolver.jcenterRepo
 
 libraryDependencies ++= {
 
   object Versions {
-    val slackScalaClient = "0.1.8"
+    val slackScalaClient = "0.2.0"
     val akka = "2.4.4"
+    val ficus = "1.2.3"
 
     val scalatest = "3.0.0"
     val mockito = "2.2.3"
   }
 
   Seq(
-    "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient
+    "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
+    "com.iheart" %% "ficus" % Versions.ficus,
+    "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
+    "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.18",
+    "org.iq80.leveldb" % "leveldb" % "0.7",
+    "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
+    "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
@@ -30,7 +39,7 @@ scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-language:postfixOps")
 mainClass in assembly := Some("Main")
 
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", xs@_*) => MergeStrategy.discard
+  case PathList("META-INF", _*) => MergeStrategy.discard
   case PathList("reference.conf") => MergeStrategy.concat
   case x => MergeStrategy.first
 }

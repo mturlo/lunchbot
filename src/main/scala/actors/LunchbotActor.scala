@@ -1,25 +1,30 @@
 package actors
 
-import actors.LunchbotActor.{MentionMessage, MessageBundle, OutboundMessage, ReactionMessage}
-import akka.actor.{Actor, ActorRef, Props}
+import actors.LunchbotActor.{MessageBundle, OutboundMessage, ReactionMessage, SimpleMessage}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern._
 import akka.util.Timeout
-import commands.{CommandParsing, CommandUsage, Help}
+import com.typesafe.config.Config
+import commands._
 import model.Statuses._
 import model.UserId
+import net.ceedubs.ficus.Ficus._
+import service.{MessagesService, StatisticsService}
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
 import slack.models.Message
-import slack.rtm.SlackRtmConnectionActor.SendMessage
+import slack.rtm.SlackRtmClient
 import util.{Formatting, Logging}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-/**
-  * Created by mactur on 29/09/2016.
-  */
-class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
+class LunchbotActor(selfId: String,
+                    messagesService: MessagesService,
+                    statisticsService: StatisticsService,
+                    slackRtmClient: SlackRtmClient,
+                    slackApiClient: BlockingSlackApiClient,
+                    config: Config)
   extends Actor
     with Logging
     with Formatting
@@ -28,8 +33,13 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
 
   implicit val askTimeout: Timeout = Timeout(1 second)
   implicit val executionContext: ExecutionContext = context.dispatcher
+  implicit val actorSystem: ActorSystem = context.system
 
-  val lunchActor: ActorRef = context.actorOf(LunchActor.props, "lunch")
+  val lunchActor: ActorRef = context.actorOf(LunchActor.props(messagesService), "lunch")
+
+  val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
+
+  val statsMaxDays: Option[Int] = config.getAs[Int]("statistics.maxDays")
 
   override def receive: Receive = {
 
@@ -37,14 +47,15 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
 
       logger.debug(s"BOT IN: $message")
 
-      val slack = sender()
-
       val textWithNoMentions = removeMentions(message.text).replaceAll(selfId, "")
 
       parse(message.copy(text = textWithNoMentions)) match {
 
         case Some(Help(_)) =>
-          slack ! toSendMessage(message.channel, renderUsage(selfId), Success)
+          sendMessage(message.channel, renderUsage(selfId), Success)
+
+        case Some(Stats(_)) =>
+          sendMessage(message.channel, statisticsService.renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
 
         case Some(command) =>
           (lunchActor ? command)
@@ -56,20 +67,26 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
                 case r: ReactionMessage =>
                   slackApiClient.addReaction(r.getText, channelId = Some(message.channel), timestamp = Some(message.ts))
                 case o: OutboundMessage =>
-                  sendMessage(slack, message.channel, o)
+                  sendMessage(message.channel, o)
               }
 
             }
 
         case None =>
-          slack ! toSendMessage(message.channel, MentionMessage("I didn't quite get that...", message.user, Failure))
+          val index = Math.abs(message.text.hashCode + message.user.hashCode) % unrecognisedMsgs.size
+          val text = unrecognisedMsgs(index)
+          sendMessage(message.channel, SimpleMessage(text, Failure))
 
       }
 
   }
 
-  private def sendMessage(slack: ActorRef, channel: String, outboundMessage: OutboundMessage): Unit = {
-    slack ! toSendMessage(channel, outboundMessage)
+  private def sendMessage(channel: String, outboundMessage: OutboundMessage): Unit = {
+    slackRtmClient.sendMessage(channel, toSendMessage(channel, outboundMessage))
+  }
+
+  private def sendMessage(channel: String, text: String, status: Status) = {
+    slackRtmClient.sendMessage(channel, toSendMessage(channel, text, status))
   }
 
   private def unbundle(outboundMessage: OutboundMessage): Seq[OutboundMessage] = {
@@ -79,19 +96,26 @@ class LunchbotActor(selfId: String, slackApiClient: BlockingSlackApiClient)
     }
   }
 
-  private def toSendMessage(channel: String, outboundMessage: OutboundMessage): SendMessage = {
+  private def toSendMessage(channel: String, outboundMessage: OutboundMessage): String = {
     toSendMessage(channel, outboundMessage.getText, outboundMessage.status)
   }
 
-  private def toSendMessage(channel: String, text: String, status: Status): SendMessage = {
-    SendMessage(channel, s"${statusIcon(status)} $text")
+  private def toSendMessage(channel: String, text: String, status: Status): String = {
+    s"${statusIcon(status)} $text"
   }
 
 }
 
 object LunchbotActor extends Formatting {
 
-  def props(selfId: String, slackApiClient: BlockingSlackApiClient): Props = Props(new LunchbotActor(selfId, slackApiClient))
+  def props(selfId: String,
+            messagesService: MessagesService,
+            statisticsService: StatisticsService,
+            slackRtmClient: SlackRtmClient,
+            slackApiClient: BlockingSlackApiClient,
+            config: Config): Props = {
+    Props(new LunchbotActor(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+  }
 
   sealed trait OutboundMessage {
     def getText: String

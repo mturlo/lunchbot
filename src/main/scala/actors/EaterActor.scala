@@ -7,11 +7,13 @@ import akka.actor.{FSM, Props}
 import commands.{Choose, Pay, Poke, Summary}
 import model.Statuses._
 import model.UserId
+import service.MessagesService
 
-/**
-  * Created by mactur on 02/10/2016.
-  */
-class EaterActor(eaterId: UserId) extends FSM[State, Data] {
+class EaterActor(eaterId: UserId,
+                 messagesService: MessagesService)
+  extends FSM[State, Data] {
+
+  import messagesService._
 
   startWith(Joined, Empty)
 
@@ -22,7 +24,7 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
       goto(FoodChosen) using FoodData(food)
 
     case Event(Pay(payerId), Empty) =>
-      sender ! MentionMessage(s"Choose some food first!", payerId, Failure)
+      sender ! MentionMessage(messages[Pay].notChosen, payerId, Failure)
       stay
 
     case Event(Summary(_), Empty) =>
@@ -30,7 +32,7 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
       stay
 
     case Event(Poke(_), Empty) =>
-      sender ! MentionMessage(s"Hey, everybody's waiting for you! Choose some food already!", eaterId, Failure)
+      sender ! MentionMessage(messages[Poke].notChosen, eaterId, Failure)
       stay
 
   }
@@ -50,7 +52,7 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
       stay
 
     case Event(Poke.Pay(_), _) =>
-      sender ! MentionMessage(s"Where's my money, man?!", eaterId, Failure)
+      sender ! MentionMessage(messages[Poke].notPaid, eaterId, Failure)
       stay
 
   }
@@ -58,11 +60,11 @@ class EaterActor(eaterId: UserId) extends FSM[State, Data] {
   when(Paid) {
 
     case Event(Choose(_, _), _) =>
-      sender ! MentionMessage(s"Too late for choosing - you've already paid!", eaterId, Failure)
+      sender ! MentionMessage(messages[Choose].alreadyPaid, eaterId, Failure)
       stay
 
     case Event(Pay(payerId), _) =>
-      sender ! MentionMessage(s"But you've already paid!", payerId, Failure)
+      sender ! MentionMessage(messages[Pay].alreadyPaid, payerId, Failure)
       stay
 
     case Event(Summary(_), _) =>
@@ -91,7 +93,14 @@ object EaterActor {
 
   case class FoodData(food: String) extends Data
 
-
-  def props(eaterId: UserId): Props = Props(new EaterActor(eaterId))
+  def props(eaterId: UserId,
+            messagesService: MessagesService): Props = {
+    Props(
+      new EaterActor(
+        eaterId,
+        messagesService
+      )
+    )
+  }
 
 }
