@@ -35,21 +35,4 @@ class StatisticsService(actorSystem: ActorSystem,
 
   }
 
-  def renderLunchmasterStatistics(implicit executionContext: ExecutionContext,
-                                  actorSystem: ActorSystem): Future[String] = {
-
-    getLunchmasterStatistics map { occurrenceMap =>
-
-      val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
-
-      val occurrenceString = sorted.map {
-        case (master, count) => s"• ${formatMention(master)} [$count]"
-      }.mkString("\n")
-
-      s"Recent lunchmasters:\n$occurrenceString"
-
-    }
-
-  }
-
 }

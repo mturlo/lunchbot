@@ -55,7 +55,13 @@ class LunchbotActor(selfId: String,
           sendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
-          statisticsService.renderLunchmasterStatistics.map { statisticsString =>
+          statisticsService.getLunchmasterStatistics.map { occurrenceMap =>
+            val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
+            val occurrenceString = sorted.map {
+              case (master, count) => s"• ${formatMention(master)} [$count]"
+            }.mkString("\n")
+            s"Lunchmaster statistics:\n$occurrenceString"
+          }.map { statisticsString =>
             sendMessage(message.channel, statisticsString, Success)
           }
 
