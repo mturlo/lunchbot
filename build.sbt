@@ -20,6 +20,8 @@ libraryDependencies ++= {
   Seq(
     "com.github.gilbertw1" %% "slack-scala-client" % Versions.slackScalaClient,
     "com.iheart" %% "ficus" % Versions.ficus,
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+    "ch.qos.logback" % "logback-classic" % "1.1.7",
     "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
     "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.18",
     "org.iq80.leveldb" % "leveldb" % "0.7",
