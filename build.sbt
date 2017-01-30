@@ -10,7 +10,7 @@ libraryDependencies ++= {
 
   object Versions {
     val slackScalaClient = "0.2.0"
-    val akka = "2.4.4"
+    val akka = "2.4.16"
     val ficus = "1.2.3"
 
     val scalatest = "3.0.0"
@@ -22,8 +22,9 @@ libraryDependencies ++= {
     "com.iheart" %% "ficus" % Versions.ficus,
     "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
     "ch.qos.logback" % "logback-classic" % "1.1.7",
-    "com.typesafe.akka" %% "akka-persistence" % "2.4.16",
-    "com.github.dnvriend" %% "akka-persistence-inmemory" % "1.3.18",
+    "com.typesafe.akka" %% "akka-persistence" % Versions.akka,
+    "com.typesafe.akka" %% "akka-persistence-query-experimental" % Versions.akka,
+    "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.4.16.0",
     "org.iq80.leveldb" % "leveldb" % "0.7",
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"

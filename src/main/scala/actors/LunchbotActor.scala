@@ -55,7 +55,9 @@ class LunchbotActor(selfId: String,
           sendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
-          sendMessage(message.channel, statisticsService.renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
+          statisticsService.renderLunchmasterStatistics.map { statisticsString =>
+            sendMessage(message.channel, statisticsString, Success)
+          }
 
         case Some(command) =>
           (lunchActor ? command)

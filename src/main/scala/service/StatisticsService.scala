@@ -1,56 +1,54 @@
 package service
 
+import actors.LunchActor.LunchCreated
+import akka.NotUsed
 import akka.actor.ActorSystem
-import commands.Create
-import slack.api.BlockingSlackApiClient
-import util.Logging
+import akka.persistence.query.EventEnvelope
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Source
+import application.Application.EventReadJournal
+import model.UserId
+import util.{Formatting, Logging}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
-class StatisticsService(messagesService: MessagesService,
-                        slackApiClient: BlockingSlackApiClient)
-  extends Logging {
+class StatisticsService(actorSystem: ActorSystem,
+                        eventReadJournal: EventReadJournal)
+  extends Logging
+    with Formatting {
 
-  import messagesService._
+  implicit val mat: ActorMaterializer = ActorMaterializer()(actorSystem)
 
-  def getLunchmasterStatistics(channel: String,
-                               maxMessages: Option[Int] = None)
-                              (implicit executionContext: ExecutionContext,
-                               actorSystem: ActorSystem): Map[String, Int] = {
+  def getLunchmasterStatistics(implicit executionContext: ExecutionContext,
+                               actorSystem: ActorSystem): Future[Map[UserId, Int]] = {
 
-    val createRegex = messages[Create].created.regex
+    val src: Source[EventEnvelope, NotUsed] = eventReadJournal.currentEventsByPersistenceId("LunchActor", 0L, Long.MaxValue)
 
-    val historyChunk = slackApiClient.getChannelHistory(channel, count = maxMessages)
+    val events: Source[Any, NotUsed] = src.map(_.event)
 
-    val createLunchMessages = historyChunk.messages.filter { jsMessage =>
-      createRegex.findFirstIn((jsMessage \ "text").as[String]).isDefined
+    events.runFold(Map.empty[UserId, Int]) {
+      case (acc, LunchCreated(lunchmaster, _)) =>
+        acc + (lunchmaster -> (acc.getOrElse(lunchmaster, 0) + 1))
+      case (acc, _) =>
+        acc
     }
-
-    val masters = createLunchMessages.map { jsMessage =>
-      val text = (jsMessage \ "text").as[String]
-      text match {
-        case createRegex(_, master) => master
-      }
-    }
-
-    masters.groupBy(x => x).mapValues(_.size)
 
   }
 
-  def renderLunchmasterStatistics(channel: String,
-                                  maxMessages: Option[Int] = None)
-                                 (implicit executionContext: ExecutionContext,
-                                  actorSystem: ActorSystem): String = {
+  def renderLunchmasterStatistics(implicit executionContext: ExecutionContext,
+                                  actorSystem: ActorSystem): Future[String] = {
 
-    val occurrenceMap = getLunchmasterStatistics(channel, maxMessages)
+    getLunchmasterStatistics map { occurrenceMap =>
 
-    val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
+      val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
 
-    val occurrenceString = sorted.map {
-      case (master, count) => s"• $master [$count]"
-    }.mkString("\n")
+      val occurrenceString = sorted.map {
+        case (master, count) => s"• ${formatMention(master)} [$count]"
+      }.mkString("\n")
 
-    s"Recent lunchmasters:\n$occurrenceString"
+      s"Recent lunchmasters:\n$occurrenceString"
+
+    }
 
   }
 
