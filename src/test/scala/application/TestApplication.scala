@@ -16,6 +16,8 @@ class TestApplication(implicit actorSystem: ActorSystem)
 
   import Mockito._
 
+  override lazy val token: String = "test_token"
+
   override val eventReadJournal: EventReadJournal = {
     PersistenceQuery(implicitly[ActorSystem])
       .readJournalFor("inmemory-read-journal")
