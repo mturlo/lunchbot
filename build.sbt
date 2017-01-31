@@ -42,9 +42,15 @@ scalacOptions ++= Seq("-Xfatal-warnings", "-feature", "-language:postfixOps")
 mainClass in assembly := Some("Main")
 
 assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", _*) => MergeStrategy.discard
-  case PathList("reference.conf") => MergeStrategy.concat
-  case x => MergeStrategy.first
+  case PathList("META-INF", xs @ _*) =>
+    xs match {
+      case "native" +: _ => MergeStrategy.first
+      case _ => MergeStrategy.discard
+    }
+  case PathList("reference.conf") =>
+    MergeStrategy.concat
+  case _ =>
+    MergeStrategy.first
 }
 
 lazy val root = project in file(".")
