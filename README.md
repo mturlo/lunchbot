@@ -1,9 +1,9 @@
 # Lunchbot
-[![Build Status](https://api.travis-ci.org/mturlo/lunchbot.svg?branch=develop)](https://travis-ci.org/mturlo/lunchbot)
+[![Build Status](https://api.travis-ci.org/mturlo/lunchbot.svg)](https://travis-ci.org/mturlo/lunchbot)
 
 Lunchbot is a Slack bot to help organise lunch ordering in teams. When ordering in a group, it is often troublesome to keep track of who wants to participate, what food do they want and if they paid the ordering person (the Lunchmaster). This bot's goal is to help make that process more efficient and organised.
 
-![alt tag](https://raw.githubusercontent.com/mturlo/lunchbot/develop/sample.png)
+![alt tag](https://raw.githubusercontent.com/mturlo/lunchbot/master/sample.png)
 
 _([pmxbot](https://github.com/yougov/pmxbot) makes a brief appearance here)_
 
