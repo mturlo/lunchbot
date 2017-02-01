@@ -39,8 +39,6 @@ class LunchbotActor(selfId: String,
 
   val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
 
-  val statsMaxDays: Option[Int] = config.getAs[Int]("statistics.maxDays")
-
   override def receive: Receive = {
 
     case message: Message if SlackUtil.mentionsId(message.text, selfId) && message.user != selfId =>
