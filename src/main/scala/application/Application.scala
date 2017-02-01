@@ -6,6 +6,7 @@ import akka.persistence.query.journal.leveldb.scaladsl.LeveldbReadJournal
 import akka.persistence.query.scaladsl.{CurrentEventsByPersistenceIdQuery, ReadJournal}
 import application.Application._
 import com.softwaremill.macwire._
+import com.softwaremill.tagging._
 import com.typesafe.config.{Config, ConfigFactory}
 import net.ceedubs.ficus.Ficus._
 import service.{LunchbotService, MessagesService, StatisticsService}
@@ -20,7 +21,17 @@ class Application()(implicit val actorSystem: ActorSystem)
     with Start
     with Stop {
 
-  val config: Config = ConfigFactory.load()
+  val appConfig: Config @@ Application = {
+    ConfigFactory
+      .load("application.conf")
+      .taggedWith[Application]
+  }
+
+  val messagesConfig: Config @@ MessagesService = {
+    ConfigFactory
+      .load("messages.conf")
+      .taggedWith[MessagesService]
+  }
 
   lazy val token: String = {
     Option(System.getenv(tokenEnv))
@@ -31,7 +42,7 @@ class Application()(implicit val actorSystem: ActorSystem)
       }
   }
 
-  val timeout: FiniteDuration = config.as[FiniteDuration]("slack.timeout")
+  val timeout: FiniteDuration = appConfig.as[FiniteDuration]("slack.timeout")
 
   val eventReadJournal: EventReadJournal = {
     PersistenceQuery(actorSystem)

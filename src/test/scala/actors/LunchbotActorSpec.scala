@@ -31,7 +31,7 @@ class LunchbotActorSpec
 
     import testApp.{actorSystem => _, _}
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient))
 
     val messageWithMention: Message = getMessage(s"<@$selfId> hey there!")
 
@@ -51,7 +51,7 @@ class LunchbotActorSpec
 
     import testApp.{actorSystem => _, _}
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient))
 
     val messageWithMention: Message = getMessage(s"<@$selfId> hey there!", selfId)
 

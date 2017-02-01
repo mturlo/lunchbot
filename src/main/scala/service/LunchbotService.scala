@@ -3,7 +3,6 @@ package service
 import actors.LunchbotActor
 import akka.actor.{ActorRef, ActorSystem}
 import application.{Start, Stop}
-import com.typesafe.config.Config
 import slack.api.BlockingSlackApiClient
 import slack.rtm.SlackRtmClient
 import util.Logging
@@ -12,8 +11,7 @@ class LunchbotService(messagesService: MessagesService,
                       statisticsService: StatisticsService,
                       slackRtmClient: SlackRtmClient,
                       slackApiClient: BlockingSlackApiClient,
-                      actorSystem: ActorSystem,
-                      config: Config)
+                      actorSystem: ActorSystem)
   extends Logging
     with Start
     with Stop {
@@ -24,8 +22,7 @@ class LunchbotService(messagesService: MessagesService,
       messagesService,
       statisticsService,
       slackRtmClient,
-      slackApiClient,
-      config)
+      slackApiClient)
     actorSystem.actorOf(props, "lunchbot")
   }
 

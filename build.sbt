@@ -12,6 +12,7 @@ libraryDependencies ++= {
     val slackScalaClient = "0.2.0"
     val akka = "2.4.16"
     val ficus = "1.2.3"
+    val macwire = "2.2.5"
 
     val scalatest = "3.0.0"
     val mockito = "2.2.3"
@@ -27,7 +28,8 @@ libraryDependencies ++= {
     "com.github.dnvriend" %% "akka-persistence-inmemory" % "2.4.16.0",
     "org.iq80.leveldb" % "leveldb" % "0.7",
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
-    "com.softwaremill.macwire" %% "macros" % "2.2.5" % "provided"
+    "com.softwaremill.macwire" %% "util" % Versions.macwire,
+    "com.softwaremill.macwire" %% "macros" % Versions.macwire % "provided"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",
