@@ -53,6 +53,14 @@ assemblyMergeStrategy in assembly := {
     MergeStrategy.first
 }
 
+assemblyOption in assembly := {
+  (assemblyOption in assembly)
+    .value
+    .copy(prependShellScript = Some(sbtassembly.AssemblyPlugin.defaultShellScript))
+}
+
+assemblyJarName in assembly := s"${name.value}-${version.value}"
+
 lazy val root = project in file(".")
 
 // scalastyle check on compile
