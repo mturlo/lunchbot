@@ -1,6 +1,8 @@
 package application
 
 import akka.actor.ActorSystem
+import akka.persistence.query.PersistenceQuery
+import application.Application.EventReadJournal
 import org.mockito.Mockito
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Suite}
@@ -8,11 +10,19 @@ import slack.api.{BlockingSlackApiClient, RtmStartState}
 import slack.models.User
 import slack.rtm.{RtmState, SlackRtmClient}
 
-class TestApplication
-  extends Application()(ActorSystem("test"))
+class TestApplication(implicit actorSystem: ActorSystem)
+  extends Application()(actorSystem)
     with MockitoSugar {
 
   import Mockito._
+
+  override lazy val token: String = "test_token"
+
+  override val eventReadJournal: EventReadJournal = {
+    PersistenceQuery(implicitly[ActorSystem])
+      .readJournalFor("inmemory-read-journal")
+      .asInstanceOf[EventReadJournal]
+  }
 
   override lazy val slackApiClient: BlockingSlackApiClient = mock[BlockingSlackApiClient]
 
@@ -39,7 +49,9 @@ trait TestApplicationSpec extends BeforeAndAfterEach {
 
   _: Suite =>
 
-  protected val testApp = new TestApplication
+  implicit val system: ActorSystem
+
+  protected val testApp = new TestApplication()(system)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

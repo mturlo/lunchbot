@@ -29,9 +29,9 @@ class LunchbotActorSpec
 
   it should "only react when mentioned" in {
 
-    import testApp._
+    import testApp.{actorSystem => _, _}
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient))
 
     val messageWithMention: Message = getMessage(s"<@$selfId> hey there!")
 
@@ -49,9 +49,9 @@ class LunchbotActorSpec
 
   it should "not react to own mentions" in {
 
-    import testApp._
+    import testApp.{actorSystem => _, _}
 
-    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+    val lunchbotActor = TestActorRef(LunchbotActor.props(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient))
 
     val messageWithMention: Message = getMessage(s"<@$selfId> hey there!", selfId)
 

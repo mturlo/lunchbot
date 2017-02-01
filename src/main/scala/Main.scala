@@ -9,7 +9,7 @@ object Main
   extends App
     with Logging {
 
-  implicit val actorSystem = ActorSystem("slack")
+  implicit val actorSystem = ActorSystem("Lunchbot")
 
   val application: Application = new Application
 

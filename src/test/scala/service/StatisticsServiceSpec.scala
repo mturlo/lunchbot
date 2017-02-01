@@ -1,33 +1,32 @@
 package service
 
+import actors.LunchbotActor.{HereMessage, SimpleMessage}
+import actors.{InMemoryCleanup, LunchActor, MessageAssertions}
 import akka.actor.ActorSystem
-import akka.testkit.TestKit
+import akka.testkit.{ImplicitSender, TestKit}
 import application.TestApplicationSpec
-import commands.Create
-import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
+import commands.{Create, Finish}
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{FlatSpecLike, MustMatchers}
-import play.api.libs.json.{JsValue, Json}
-import slack.api.HistoryChunk
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 class StatisticsServiceSpec
   extends TestKit(ActorSystem("StatisticsServiceSpec"))
+    with ImplicitSender
     with FlatSpecLike
     with MustMatchers
-    with MockitoSugar
+    with ScalaFutures
+    with Eventually
+    with MessageAssertions
+    with InMemoryCleanup
     with TestApplicationSpec {
 
   it should "calculate lunchmaster statistics" in {
 
-    import Mockito._
-    import testApp._
-    import messagesService._
+    implicit val executionContext: ExecutionContext = system.dispatcher
 
-    val channel = "test_channel"
-
-    val maxMessages = 42
+    val lunchActor = system.actorOf(LunchActor.props(testApp.messagesService))
 
     val (lunchmaster1, count1) = "lunchmaster_1" -> 1
     val (lunchmaster2, count2) = "lunchmaster_2" -> 2
@@ -39,22 +38,17 @@ class StatisticsServiceSpec
       lunchmaster3 -> count3
     )
 
-    def foo(lunchmaster: String): JsValue = {
-      Json.obj(
-        "text" -> messages[Create].created("some_place", lunchmaster)
-      )
+    expected foreach {
+      case (lunchmaster, count) =>
+        (1 to count) foreach { _ =>
+          lunchActor ! Create(lunchmaster, "some_place")
+          expectSuccess[HereMessage]
+          lunchActor ! Finish(lunchmaster)
+          expectSuccess[SimpleMessage]
+        }
     }
 
-    val historyMessages: Seq[JsValue] = {
-      ((1 to count1) map (_ => foo(lunchmaster1))) ++
-        ((1 to count2) map (_ => foo(lunchmaster2))) ++
-        ((1 to count3) map (_ => foo(lunchmaster3)))
-    }
-
-    when(slackApiClient.getChannelHistory(channel, count = Some(maxMessages)))
-      .thenReturn(HistoryChunk(None, historyMessages, has_more = false))
-
-    statisticsService.getLunchmasterStatistics(channel, Some(maxMessages)) mustBe expected
+    testApp.statisticsService.getLunchmasterStatistics.futureValue mustBe expected
 
   }
 

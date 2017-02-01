@@ -1,15 +1,16 @@
 package service
 
+import com.softwaremill.tagging._
 import com.typesafe.config.Config
 import commands._
+import net.ceedubs.ficus.Ficus._
+import slack.models.Message
 import util.Logging
 
 import scala.reflect.ClassTag
 import scala.util.matching.Regex
 
-case class MessagesService(config: Config) extends Logging {
-
-  val messagesConfig: Config = config.getConfig("messages")
+case class MessagesService(messagesConfig: Config @@ MessagesService) extends Logging {
 
   sealed trait CommandMessages[C <: Command] {
 
@@ -134,5 +135,12 @@ case class MessagesService(config: Config) extends Logging {
   }
 
   def messages[C <: Command]: CommandMessages[C] = new CommandMessages[C] {}
+
+  val unrecognisedMsgs: List[String] = messagesConfig.as[List[String]]("unrecognised")
+
+  def randomUnrecognisedFor(message: Message): String = {
+    val index = Math.abs(message.text.hashCode + message.user.hashCode) % unrecognisedMsgs.size
+    unrecognisedMsgs(index)
+  }
 
 }

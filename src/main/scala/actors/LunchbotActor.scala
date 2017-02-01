@@ -4,11 +4,9 @@ import actors.LunchbotActor.{MessageBundle, OutboundMessage, ReactionMessage, Si
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern._
 import akka.util.Timeout
-import com.typesafe.config.Config
 import commands._
 import model.Statuses._
 import model.UserId
-import net.ceedubs.ficus.Ficus._
 import service.{MessagesService, StatisticsService}
 import slack.SlackUtil
 import slack.api.BlockingSlackApiClient
@@ -23,8 +21,7 @@ class LunchbotActor(selfId: String,
                     messagesService: MessagesService,
                     statisticsService: StatisticsService,
                     slackRtmClient: SlackRtmClient,
-                    slackApiClient: BlockingSlackApiClient,
-                    config: Config)
+                    slackApiClient: BlockingSlackApiClient)
   extends Actor
     with Logging
     with Formatting
@@ -36,10 +33,6 @@ class LunchbotActor(selfId: String,
   implicit val actorSystem: ActorSystem = context.system
 
   val lunchActor: ActorRef = context.actorOf(LunchActor.props(messagesService), "lunch")
-
-  val unrecognisedMsgs: List[String] = config.as[List[String]]("messages.unrecognised")
-
-  val statsMaxDays: Option[Int] = config.getAs[Int]("statistics.maxDays")
 
   override def receive: Receive = {
 
@@ -55,7 +48,9 @@ class LunchbotActor(selfId: String,
           sendMessage(message.channel, renderUsage(selfId), Success)
 
         case Some(Stats(_)) =>
-          sendMessage(message.channel, statisticsService.renderLunchmasterStatistics(message.channel, statsMaxDays), Success)
+          statisticsService.getLunchmasterStatistics
+            .map(formatStatistics)
+            .map(statisticsString => sendMessage(message.channel, statisticsString, Success))
 
         case Some(command) =>
           (lunchActor ? command)
@@ -73,9 +68,8 @@ class LunchbotActor(selfId: String,
             }
 
         case None =>
-          val index = Math.abs(message.text.hashCode + message.user.hashCode) % unrecognisedMsgs.size
-          val text = unrecognisedMsgs(index)
-          sendMessage(message.channel, SimpleMessage(text, Failure))
+          val response = messagesService.randomUnrecognisedFor(message)
+          sendMessage(message.channel, SimpleMessage(response, Failure))
 
       }
 
@@ -112,9 +106,16 @@ object LunchbotActor extends Formatting {
             messagesService: MessagesService,
             statisticsService: StatisticsService,
             slackRtmClient: SlackRtmClient,
-            slackApiClient: BlockingSlackApiClient,
-            config: Config): Props = {
-    Props(new LunchbotActor(selfId, messagesService, statisticsService, slackRtmClient, slackApiClient, config))
+            slackApiClient: BlockingSlackApiClient): Props = {
+    Props(
+      new LunchbotActor(
+        selfId,
+        messagesService,
+        statisticsService,
+        slackRtmClient,
+        slackApiClient
+      )
+    )
   }
 
   sealed trait OutboundMessage {
