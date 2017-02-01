@@ -19,7 +19,7 @@ trait MessageAssertions {
   def expectFailure[T <: OutboundMessage: ClassTag]: Assertion = expectStatus[T](Statuses.Failure)
 
   private def expectStatus[T <: OutboundMessage: ClassTag](expected: Status): Assertion = {
-    expectMsgPF(1 second) {
+    expectMsgPF(5 seconds) {
       case out: T => out.status must be(expected)
     }
   }
