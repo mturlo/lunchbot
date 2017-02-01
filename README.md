@@ -1,4 +1,6 @@
 # lunchbot
+[![Build Status](https://api.travis-ci.org/mturlo/lunchbot.svg?branch=develop)](https://travis-ci.org/mturlo/lunchbot)
+
 For all your lunch (automation) needs!
 
 ## Installation
