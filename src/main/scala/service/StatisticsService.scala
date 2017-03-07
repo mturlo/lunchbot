@@ -7,18 +7,35 @@ import akka.persistence.query.EventEnvelope
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
 import application.Application.EventReadJournal
+import com.softwaremill.tagging.@@
+import com.typesafe.config.Config
 import model.{LunchmasterStatistics, UserId}
-import scala.async.Async._
+import net.ceedubs.ficus.Ficus._
+import net.ceedubs.ficus.readers.ValueReader
 import util.{Formatting, Logging}
-
+import scala.collection.JavaConversions._
+import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
 
 class StatisticsService(actorSystem: ActorSystem,
-                        eventReadJournal: EventReadJournal)
+                        eventReadJournal: EventReadJournal,
+                        statisticsConfig: Config @@ StatisticsService)
   extends Logging
     with Formatting {
 
   implicit val mat: ActorMaterializer = ActorMaterializer()(actorSystem)
+
+  implicit val titlesMapReader: ValueReader[Seq[(Int, String)]] = new ValueReader[Seq[(Int, String)]] {
+    override def read(config: Config, path: String): Seq[(Int, String)] = {
+      val entries = config.getConfig(path).entrySet()
+      val tuples = entries.map { entry =>
+        entry.getKey.toInt -> entry.getValue.unwrapped().asInstanceOf[String]
+      }
+      tuples.toSeq
+    }
+  }
+
+  private val titlesByLevel: Seq[(Int, String)] = statisticsConfig.as[Seq[(Int, String)]]("titles").sortBy(_._1)
 
   def getLunchmasterStatistics(implicit executionContext: ExecutionContext,
                                actorSystem: ActorSystem): Future[Seq[LunchmasterStatistics]] = async {
@@ -37,9 +54,16 @@ class StatisticsService(actorSystem: ActorSystem,
     }
 
     lunchCountByUser map {
-      case (userId, count) => LunchmasterStatistics(userId, count, "Some title!")
+      case (userId, count) => LunchmasterStatistics(userId, count, getTitle(count))
     } toSeq
 
+  }
+
+  private def getTitle(lunchCount: Int): String = {
+    titlesByLevel
+      .takeWhile(_._1 <= lunchCount)
+      .last
+      ._2
   }
 
 }

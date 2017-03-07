@@ -33,6 +33,12 @@ class Application()(implicit val actorSystem: ActorSystem)
       .taggedWith[MessagesService]
   }
 
+  val statisticsConfig: Config @@ StatisticsService = {
+    ConfigFactory
+      .load("statistics.conf")
+      .taggedWith[StatisticsService]
+  }
+
   lazy val token: String = {
     Option(System.getenv(tokenEnv))
       .getOrElse {

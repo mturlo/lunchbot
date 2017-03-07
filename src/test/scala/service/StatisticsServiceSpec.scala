@@ -34,9 +34,9 @@ class StatisticsServiceSpec
     val (lunchmaster3, count3) = "lunchmaster_3" -> 3
 
     val expected = Seq(
-      LunchmasterStatistics(lunchmaster1,  count1, "Some title!"),
-      LunchmasterStatistics(lunchmaster2,  count2, "Some title!"),
-      LunchmasterStatistics(lunchmaster3,  count3, "Some title!")
+      LunchmasterStatistics(lunchmaster1,  count1, "Lunch Initiate"),
+      LunchmasterStatistics(lunchmaster2,  count2, "Junior Ordering Assistant"),
+      LunchmasterStatistics(lunchmaster3,  count3, "Food Delivery Executive")
     )
 
     expected foreach { stats =>
