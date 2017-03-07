@@ -14,7 +14,7 @@ trait Formatting {
   protected def formatStatistics(lunchmasterStatistics: Seq[LunchmasterStatistics]): String = {
     val sorted = lunchmasterStatistics.sortBy(_.lunchCount).reverse
     val occurrenceString = sorted.map { stats =>
-      s"• ${formatMention(stats.userId)} [${stats.lunchCount}] (${stats.title})"
+      s"• ${formatMention(stats.userId)} [${stats.lunchCount}] - _${stats.title}_"
     }.mkString("\n")
     s"Lunchmaster statistics:\n$occurrenceString"
   }
