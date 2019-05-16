@@ -25,14 +25,12 @@ class StatisticsService(actorSystem: ActorSystem,
 
   implicit val mat: ActorMaterializer = ActorMaterializer()(actorSystem)
 
-  implicit val titlesMapReader: ValueReader[Seq[(Int, String)]] = new ValueReader[Seq[(Int, String)]] {
-    override def read(config: Config, path: String): Seq[(Int, String)] = {
-      val entries = config.getConfig(path).entrySet()
-      val tuples = entries.asScala.map { entry =>
-        entry.getKey.toInt -> entry.getValue.unwrapped().asInstanceOf[String]
-      }
-      tuples.toSeq
+  implicit val titlesMapReader: ValueReader[Seq[(Int, String)]] = (config: Config, path: String) => {
+    val entries = config.getConfig(path).entrySet()
+    val tuples = entries.asScala.map { entry =>
+      entry.getKey.toInt -> entry.getValue.unwrapped().asInstanceOf[String]
     }
+    tuples.toSeq
   }
 
   private val titlesByLevel: Seq[(Int, String)] = statisticsConfig.as[Seq[(Int, String)]]("titles").sortBy(_._1)
