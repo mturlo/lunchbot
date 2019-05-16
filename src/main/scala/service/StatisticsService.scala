@@ -13,7 +13,7 @@ import model.{LunchmasterStatistics, UserId}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ValueReader
 import util.{Formatting, Logging}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.async.Async._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -28,7 +28,7 @@ class StatisticsService(actorSystem: ActorSystem,
   implicit val titlesMapReader: ValueReader[Seq[(Int, String)]] = new ValueReader[Seq[(Int, String)]] {
     override def read(config: Config, path: String): Seq[(Int, String)] = {
       val entries = config.getConfig(path).entrySet()
-      val tuples = entries.map { entry =>
+      val tuples = entries.asScala.map { entry =>
         entry.getKey.toInt -> entry.getValue.unwrapped().asInstanceOf[String]
       }
       tuples.toSeq
