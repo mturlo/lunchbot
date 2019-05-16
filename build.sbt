@@ -1,6 +1,6 @@
 name := "lunchbot"
 
-version := "1.0.0-SNAPSHOT"
+version := "1.1.0-SNAPSHOT"
 
 scalaVersion := "2.11.8"
 
@@ -29,7 +29,8 @@ libraryDependencies ++= {
     "org.iq80.leveldb" % "leveldb" % "0.7",
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.softwaremill.macwire" %% "util" % Versions.macwire,
-    "com.softwaremill.macwire" %% "macros" % Versions.macwire % "provided"
+    "com.softwaremill.macwire" %% "macros" % Versions.macwire % "provided",
+    "org.scala-lang.modules" %% "scala-async" % "0.9.6"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % Versions.scalatest % "test",

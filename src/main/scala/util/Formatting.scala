@@ -11,10 +11,10 @@ trait Formatting {
 
   protected def removeMentions(input: String): String = input.replaceAll("[@<>]", "")
 
-  protected def formatStatistics(occurrenceMap: Map[UserId, Int]): String = {
-    val sorted = occurrenceMap.toSeq.sortBy(_._2).reverse
-    val occurrenceString = sorted.map {
-      case (master, count) => s"• ${formatMention(master)} [$count]"
+  protected def formatStatistics(lunchmasterStatistics: Seq[LunchmasterStatistics]): String = {
+    val sorted = lunchmasterStatistics.sortBy(_.lunchCount).reverse
+    val occurrenceString = sorted.map { stats =>
+      s"• ${formatMention(stats.userId)} [${stats.lunchCount}] - _${stats.title}_"
     }.mkString("\n")
     s"Lunchmaster statistics:\n$occurrenceString"
   }
