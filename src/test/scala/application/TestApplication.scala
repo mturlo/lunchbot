@@ -3,8 +3,7 @@ package application
 import akka.actor.ActorSystem
 import akka.persistence.query.PersistenceQuery
 import application.Application.EventReadJournal
-import org.mockito.Mockito
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Suite}
 import slack.api.{BlockingSlackApiClient, RtmStartState}
 import slack.models.User
@@ -13,8 +12,6 @@ import slack.rtm.{RtmState, SlackRtmClient}
 class TestApplication(implicit actorSystem: ActorSystem)
   extends Application()(actorSystem)
     with MockitoSugar {
-
-  import Mockito._
 
   override lazy val token: String = "test_token"
 

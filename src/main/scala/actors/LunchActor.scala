@@ -268,7 +268,7 @@ class LunchActor(val messagesService: MessagesService)
         .map(
           _.mapTo[T]
             .map(Some(_))
-            .recover(PartialFunction(_ => None))
+            .recover { case _ => None }
         )
     ).map(_.flatten.toSeq)
   }
