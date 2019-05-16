@@ -9,7 +9,7 @@ class CommandParsingSpec extends FlatSpec with MustMatchers {
   val testUser: UserId = "test_user"
 
   private def getMessage(text: String): Message = {
-    Message("", "", testUser, text, None)
+    Message("", "", testUser, text, None, None)
   }
 
   it should "parse all commands" in new CommandParsing {

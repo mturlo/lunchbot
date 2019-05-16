@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import application.TestApplicationSpec
 import model.UserId
+import org.mockito.MockitoSugar
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpecLike, MustMatchers}
 import slack.models.Message
 import util.Formatting
@@ -24,7 +24,7 @@ class LunchbotActorSpec
   val selfId = "some_self_id"
 
   private def getMessage(text: String, userId: UserId = testUser): Message = {
-    Message("", "", userId, text, None)
+    Message("", "", userId, text, None, None)
   }
 
   it should "only react when mentioned" in {
