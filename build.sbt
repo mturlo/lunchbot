@@ -24,8 +24,7 @@ libraryDependencies ++= {
     "org.iq80.leveldb" % "leveldb" % "0.11",
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.softwaremill.macwire" %% "util" % Versions.macwire,
-    "com.softwaremill.macwire" %% "macros" % Versions.macwire % "provided",
-    "org.scala-lang.modules" %% "scala-async" % "0.10.0" // todo remove
+    "com.softwaremill.macwire" %% "macros" % Versions.macwire % "provided"
   ) ++
     Seq(
       "org.scalatest" %% "scalatest" % "3.0.7" % "test",
