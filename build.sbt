@@ -9,8 +9,6 @@ libraryDependencies ++= {
   object Versions {
     val akka = "2.5.22"
     val macwire = "2.3.2"
-
-    val mockito = "2.2.3"
   }
 
   Seq(
